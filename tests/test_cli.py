@@ -6,8 +6,8 @@ import pytest
 from agents_mindmap import runtime
 from agents_mindmap.cli import EXIT_CONFIG, build_parser, main
 
-IMPLEMENTED = ("serve-web", "serve-service", "serve-delegate", "migrate")
-LATER = ("notifier", "embedder", "reembed")
+IMPLEMENTED = ("serve-web", "serve-service", "serve-delegate", "migrate", "notifier")
+LATER = ("embedder", "reembed")
 
 
 @pytest.fixture(autouse=True)
@@ -36,7 +36,7 @@ def test_cli_help_lists_commands(capsys):
     assert out.startswith("usage: mindmap")
     for name in IMPLEMENTED:
         assert name in out
-    # not shipped until implemented (Tasks 13 and 21): no stub subcommand in a release
+    # not shipped until implemented (Task 21): no stub subcommand in a release
     for name in LATER:
         assert name not in out
 

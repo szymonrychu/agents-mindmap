@@ -10,8 +10,21 @@ has its own Postgres database (pgvector). Agents reach it through the orchestrat
 through the Mindmaps page of agents-web.
 
 Released so far: maps, nodes with versions, growth areas, edges, links, directions, knowledge
-notes, traversal, lexical search, the change feed and the chart. The notifier and semantic
-search come in later releases.
+notes, traversal, lexical search, the change feed, the chart and the task-notice notifier.
+Semantic search comes in a later release.
+
+## Notices
+
+Every write appends an event through one function, which also enqueues a `task_notices` row
+for each task (`T-n`) linked to the map (map or node level); changes coalesce into one pending
+row per task, due 60 s (`MINDMAP_NOTICE_DEBOUNCE_SECONDS`) after the first. `mindmap notifier`
+(one replica, advisory lock) sends `POST /taskboard/api/v1/tasks/{key}/external-changes` with
+`{"source": "mindmap", "ref": "M-3", "actor_session": ...}`: 2xx marks sent, 404 dead, anything
+else backs off and retries (at-least-once). The taskboard computes the audience and sends its
+usual `Task T-n was updated` notice; the writing session is excluded when all coalesced changes
+are its own. The embedder's `node_embedded` events never notify. A direction on a map with no
+linked task is announced instead by one content-free message to the live sessions of the map's
+project (keys and a link, no direction text).
 
 ## Development
 
@@ -56,6 +69,7 @@ process exit with code 78 and one line per variable, naming variables only, neve
 | `MINDMAP_EMBEDDER_MODEL` | `intfloat/multilingual-e5-large-instruct` | embedding model |
 | `MINDMAP_EMBED_DIM` | `1024` | embedding dimension |
 | `MINDMAP_NOTICE_DEBOUNCE_SECONDS` | `60` | debounce of task notices |
+| `MINDMAP_TASKBOARD_URL` / `MINDMAP_TASKBOARD_TOKEN` | empty | taskboard delegate listener and its bearer; empty url turns `mindmap notifier` off |
 | `MINDMAP_NOTIFIER_POLL_SECONDS` | `5` | notifier poll interval |
 | `MINDMAP_NOTIFIER_BACKOFF_MAX_SECONDS` | `60` | notifier retry backoff cap |
 | `MINDMAP_IDLE_IN_TRANSACTION_TIMEOUT_MS` | `30000` | `idle_in_transaction_session_timeout` of every pool connection |

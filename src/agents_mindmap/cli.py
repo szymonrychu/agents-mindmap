@@ -1,7 +1,7 @@
 """argparse front end of the `mindmap` console script, with a command registry.
 
-Only implemented commands are registered: `notifier` (Task 13), `embedder` and `reembed`
-(Task 21) are added with their code, so no release ships a stub."""
+Only implemented commands are registered: `embedder` and `reembed` (Task 21) are added with
+their code, so no release ships a stub."""
 
 from __future__ import annotations
 
@@ -95,12 +95,22 @@ def _serve(listener: str) -> Callable[[Settings], int]:
     return run
 
 
+def _notifier(settings: Settings) -> int:
+    from agents_mindmap import notifier
+
+    if not settings.taskboard_url:
+        print("MINDMAP_TASKBOARD_URL: required to run the notifier", file=sys.stderr)
+        return EXIT_CONFIG
+    return notifier.main(settings)
+
+
 register("migrate", _configured(_migrate), "apply the schema migrations and exit")
 register("serve-web", _configured(_serve("web")), "serve the user-facing http api")
 register("serve-service", _configured(_serve("service")), "serve the orchestrator relay http api")
 register(
     "serve-delegate", _configured(_serve("delegate")), "serve the cluster-only delegate http api"
 )
+register("notifier", _configured(_notifier), "drain the task and direction notice outboxes")
 
 
 if __name__ == "__main__":

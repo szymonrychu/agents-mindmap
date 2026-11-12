@@ -203,6 +203,7 @@ CREATE TABLE IF NOT EXISTS task_notices (
     actor_session text NULL,
     status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'dead')),
     attempts int NOT NULL DEFAULT 0,
+    changes int NOT NULL DEFAULT 1,
     next_attempt_at timestamptz NOT NULL DEFAULT now(),
     due_at timestamptz NOT NULL DEFAULT now(),
     created_at timestamptz NOT NULL DEFAULT now(),

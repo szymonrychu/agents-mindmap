@@ -56,7 +56,8 @@ embedder:
     limits: {memory: 256Mi}
 
 # The notifier process (singleton): drains the task-change and direction outboxes to the
-# taskboard. Off by default; agents-helmfile enables it. Needs taskboard.url.
+# taskboard and, for the direction fallback, to the orchestrator. Off by default; agents-helmfile
+# enables it. Needs taskboard.url.
 notifier:
   enabled: false
   resources:
