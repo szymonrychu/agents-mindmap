@@ -1,0 +1,113 @@
+image:
+  repository: harbor.szymonrichert.pl/containers/agents-mindmap
+  # Defaults to the chart appVersion (the short sha CI sets when it packages the chart).
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Required: the base URL of agents-web, e.g. https://lab.szymonrichert.pl (not the /mindmap api).
+# Fallback links are <publicBaseUrl>/mindmaps/M-<n>.
+publicBaseUrl: ""
+
+# Every secret value comes from an external Secret; the chart renders no Secret.
+# Required: the Secret holding the DSN of the service's own database (agents-helmfile deploys it).
+postgres:
+  existingSecret: ""
+  existingSecretKey: uri
+
+# Required: the orchestrator service port and the token mindmap sends to it.
+orchestrator:
+  url: ""
+  tokenSecret:
+    name: ""
+    key: token
+
+# Required: the bearer token the service listener verifies (the orchestrator relay sends it).
+relayTokenSecret:
+  name: ""
+  key: token
+
+# Optional: the bearer token list (comma separated) of the delegate listener, a cluster-only
+# user api. The delegate port and its Service are rendered only when the name is set.
+delegate:
+  tokensSecret:
+    name: ""
+    key: tokens
+
+# Optional: the taskboard delegate listener mindmap notifies; empty url turns the notifier off.
+# The token Secret is required when the url is set.
+taskboard:
+  url: ""
+  tokenSecret:
+    name: ""
+    key: token
+
+# Optional: the OpenAI-shaped embeddings endpoint; empty turns semantic search off.
+embedder:
+  url: ""
+
+# Source CIDRs allowed on the web listener (the oauth2-proxy sidecar reaches it from loopback).
+allowedCidrs:
+  - 127.0.0.1/32
+
+# Extra MINDMAP_* settings; keys must start with MINDMAP_.
+env: {}
+
+ports:
+  web: 8080
+  delegate: 8081
+  service: 8082
+
+# The api Deployment runs `mindmap serve`: the web, service and (optional) delegate listeners.
+api:
+  replicas: 1
+  podAnnotations: {}
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 256Mi}
+
+podLabels: {}
+terminationGracePeriodSeconds: 30
+
+service:
+  type: ClusterIP
+  port: 80
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# The api is routed under /mindmap on the shared host; only the web listener is routed.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: lab.szymonrichert.pl
+      paths:
+        - path: /mindmap
+          pathType: Prefix
+  tls: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

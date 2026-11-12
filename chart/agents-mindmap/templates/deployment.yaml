@@ -1,0 +1,105 @@
+{{- $tag := default .Chart.AppVersion .Values.image.tag }}
+{{- $image := printf "%s:%s" .Values.image.repository $tag }}
+{{- $settingsSum := include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+{{- $labels := dict "context" . "component" "api" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "agents-mindmap.fullname" . }}-api
+  labels:
+    {{- include "agents-mindmap.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicas | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "agents-mindmap.componentLabels" $labels | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/settings: {{ $settingsSum }}
+        {{- with .Values.api.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "agents-mindmap.labels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- include "agents-mindmap.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "agents-mindmap.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: migrate
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["mindmap"]
+          args: ["migrate"]
+          {{- include "agents-mindmap.env" . | nindent 10 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      containers:
+        - name: api
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["mindmap"]
+          args: ["serve"]
+          {{- include "agents-mindmap.env" . | nindent 10 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.ports.web }}
+              protocol: TCP
+            - name: service
+              containerPort: {{ .Values.ports.service }}
+              protocol: TCP
+            {{- if include "agents-mindmap.delegateEnabled" . }}
+            - name: delegate
+              containerPort: {{ .Values.ports.delegate }}
+              protocol: TCP
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+          {{- with .Values.api.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
