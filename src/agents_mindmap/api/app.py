@@ -32,6 +32,7 @@ from agents_mindmap.api import (
 from agents_mindmap.api.actors import Actor, agent_actor, user_actor
 from agents_mindmap.api.errors import ApiError, error_response
 from agents_mindmap.api.stream import DEFAULT_POLL_SECONDS, ChangeHub, ListenFn
+from agents_mindmap.db import outbox
 from agents_mindmap.projects import ProjectLookup
 from agents_mindmap.settings import Settings
 
@@ -93,6 +94,7 @@ def _base_app(
             await app.state.projects.aclose()
 
     app = FastAPI(title=title, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+    outbox.configure(settings.notice_debounce_seconds)
     app.state.settings = settings
     app.state.pool = pool
     app.state.resolve_actor = resolve_actor

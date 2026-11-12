@@ -19,6 +19,7 @@ from agents_mindmap.api.errors import ApiError
 from agents_mindmap.db import growth, links
 from agents_mindmap.db.events import append_event
 from agents_mindmap.db.keys import fmt_key, parse_key
+from agents_mindmap.db.outbox import enqueue_direction_notice, has_linked_task
 
 DIRECTION_COLUMNS = (
     "id, map_id, project, node_id, text, origin, status, created_by, acknowledged_by,"
@@ -158,6 +159,8 @@ async def create_direction(
             ignore_existing=True,
         )
     await _event(conn, actor, "direction_created", project, map_id, node_id, did)
+    if not await has_linked_task(conn, map_id):
+        await enqueue_direction_notice(conn, did)
     row = await _get(conn, did)
     assert row is not None
     return row
