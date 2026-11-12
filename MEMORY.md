@@ -2,6 +2,16 @@
 
 Lessons that outlive a session. Newest first.
 
+## 2026-11-12 - schema, maps, nodes (research-mindmaps Task 8)
+
+- `0001_mindmap.sql` hardcodes `vector(1024)` and the seeded `embedding_config` row (a static .sql cannot read Python); `test_sql_dim_matches_constant` ties them to `EMBED_DIM`/`EMBED_MODEL`. Provisional until the TEI spike (Task 20) confirms; changing it before the first deploy edits 0001, after it needs a new migration plus `reembed`. `serve` refuses to start on a mismatch (`verify_embedding_config`, names `MINDMAP_EMBED_DIM` / `MINDMAP_EMBEDDER_MODEL`).
+- Tests: the session container's `template1` carries `vector` (CNPG does this at bootstrap); `bare_db_url` clones `template0` for the guard test.
+- Two counters on a node: `version` is the optimistic row guard sent by clients on every PATCH (bumped by any change); `current_version` is the latest `node_versions` row (bumped only by a topic or notes change). A PATCH locks the row (`FOR UPDATE`), so a concurrent loser sees the new version and answers 409 `version_conflict` with `current_version` in the error body (it is the row `version`).
+- A PATCH that changes nothing returns the node unchanged without bumping. A topic or notes change without `summary` is 422 `summary_required`.
+- Reparenting takes `pg_advisory_xact_lock(map_id)` so two concurrent moves cannot build a cycle; the cycle check is a recursive CTE up the parents. The root cannot be moved or deleted alone (422 `root_immovable`); deleting a node deletes its subtree.
+- Events survive deletes (no foreign keys); `detail` holds keys and field names only. The validation handler no longer repeats an unknown field name (caller text).
+- User author: `user:<email>` from `X-Forwarded-Email` (oauth2-proxy), else `user:unknown` (delegate callers). `ProjectLookup` raises `project_unknown` (the spec code; the taskboard copy says `unknown_project`) and lists active slugs for `readable`; Task 9 moves scope into `Actor`.
+
 ## 2026-11-12 - scaffold decisions (research-mindmaps Task 7)
 
 - Copy sources: agents-vault (CI, Dockerfile, scripts, mise tasks, OpenAPI export) and agents-taskboard (three listeners: web allowlist, delegate bearer list, service relay bearer). Unlike taskboard, `mindmap serve` runs all listeners in one process with one pool (spec 3.1 "api (three listeners)"); the delegate listener starts only when `MINDMAP_DELEGATE_TOKENS` is set.

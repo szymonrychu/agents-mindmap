@@ -21,6 +21,32 @@ LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"
 log = logging.getLogger(__name__)
 
 
+class EmbeddingConfigError(RuntimeError):
+    """The settings and the stored `embedding_config` row disagree."""
+
+
+async def verify_embedding_config(pool: AsyncConnectionPool, settings: Settings) -> None:
+    """Refuse to start when the configured embedding model or dimension differs from the one
+    the stored vectors were built with; the message names the env var to fix, never a value
+    other than the two model facts."""
+    async with pool.connection() as conn:
+        cur = await conn.execute("SELECT model, dim FROM embedding_config")
+        row = await cur.fetchone()
+    if row is None:
+        raise EmbeddingConfigError("embedding_config has no row")
+    model, dim = row
+    if dim != settings.embed_dim:
+        raise EmbeddingConfigError(
+            f"MINDMAP_EMBED_DIM={settings.embed_dim} but the database holds {dim}-dimension "
+            "vectors: change the env var or migrate and reembed"
+        )
+    if model != settings.embedder_model:
+        raise EmbeddingConfigError(
+            f"MINDMAP_EMBEDDER_MODEL={settings.embedder_model} but the database holds vectors "
+            f"of {model}: change the env var or migrate and reembed"
+        )
+
+
 class _Server(uvicorn.Server):
     """uvicorn without its own signal handling: run_service owns SIGTERM and SIGINT."""
 
@@ -73,6 +99,7 @@ async def serve(settings: Settings, stop: asyncio.Event) -> None:
     """Serve every listener until `stop` is set or one listener ends; then stop them all."""
     pool = await open_pool(settings)
     try:
+        await verify_embedding_config(pool, settings)
         servers = [_Server(_config(settings, app, port)) for app, port in _apps(settings, pool)]
         serving = [asyncio.create_task(s.serve()) for s in servers]
         stopping = asyncio.create_task(stop.wait())
