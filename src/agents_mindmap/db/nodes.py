@@ -68,6 +68,18 @@ async def get_node(conn: psycopg.AsyncConnection, key: str) -> NodeRow | None:
     return await _select(conn, parse_key("N", key))
 
 
+async def find_by_client_key(
+    conn: psycopg.AsyncConnection, actor: str, client_key: str
+) -> NodeRow | None:
+    """The node `actor` created with `client_key`, if any (idempotent creates)."""
+    async with conn.cursor(row_factory=class_row(NodeRow)) as cur:
+        await cur.execute(
+            f"SELECT {NODE_COLUMNS} FROM nodes WHERE created_by = %s AND client_key = %s",
+            (actor, client_key),
+        )
+        return await cur.fetchone()
+
+
 async def list_nodes(conn: psycopg.AsyncConnection, map_key: str) -> list[NodeRow]:
     async with conn.cursor(row_factory=class_row(NodeRow)) as cur:
         await cur.execute(

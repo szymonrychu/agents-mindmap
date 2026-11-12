@@ -137,3 +137,37 @@ async def web_client(db_url: str, pool: AsyncConnectionPool) -> AsyncIterator[ht
     ) as client:
         client.app = app  # type: ignore[attr-defined]
         yield client
+
+
+@pytest.fixture
+async def agent(db_url: str, pool: AsyncConnectionPool):
+    """Factory of service-listener clients: `agent("p1,p2", session="s1", slug="alpha")` acts
+    with that project scope (`*` for a superleader). The service app shares the web app's
+    database and a fake orchestrator."""
+    from agents_mindmap.api.app import create_service_app
+
+    app = create_service_app(make_settings(db_url), pool)
+    app.state.projects = ProjectLookup(
+        "http://orchestrator.invalid", "t", transport=fake_orchestrator()
+    )
+    clients: list[httpx.AsyncClient] = []
+
+    def make(projects: str | None = "p1", *, session: str = "s1", slug: str | None = "alpha"):
+        headers = {"Authorization": f"Bearer {RELAY_TOKEN}"}
+        if session:
+            headers["X-Orch-Session"] = session
+        if slug:
+            headers["X-Orch-Slug"] = slug
+        if projects is not None:
+            headers["X-Orch-Projects"] = projects
+        client = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app, client=("10.0.0.1", 1)),
+            base_url="http://test" + PREFIX,
+            headers=headers,
+        )
+        clients.append(client)
+        return client
+
+    yield make
+    for client in clients:
+        await client.aclose()
