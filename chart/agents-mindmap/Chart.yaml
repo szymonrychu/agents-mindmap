@@ -1,0 +1,6 @@
+apiVersion: v2
+name: agents-mindmap
+description: Mindmap service (web, delegate and service listeners)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
