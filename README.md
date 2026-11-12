@@ -1,6 +1,6 @@
 # agents-mindmap
 
-Part of the workbench project (python).
+Part of the workdir project (python).
 
 ## What this is
 
