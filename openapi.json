@@ -3755,7 +3755,7 @@
           },
           {
             "in": "query",
-            "name": "after_id",
+            "name": "after",
             "required": false,
             "schema": {
               "anyOf": [
@@ -3767,7 +3767,7 @@
                   "type": "null"
                 }
               ],
-              "title": "After Id"
+              "title": "After"
             }
           },
           {

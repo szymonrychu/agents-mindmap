@@ -57,7 +57,7 @@ spec:
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           command: ["mindmap"]
           args: [{{ $worker | quote }}]
-          {{- include "agents-mindmap.env" $ | nindent 10 }}
+          {{- include "agents-mindmap.env" (dict "ctx" $ "secrets" (ternary (list "taskboard") (list) (eq $worker "notifier"))) | nindent 10 }}
           {{- with $cfg.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

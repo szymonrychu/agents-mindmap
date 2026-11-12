@@ -200,6 +200,9 @@ def create_delegate_app(
 def create_service_app(settings: Settings, pool: AsyncConnectionPool | None) -> FastAPI:
     """The relay-facing app: bearer gate on the relay token; agent identity and project scope
     from the relay's forwarded headers. Agents archive, never hard delete."""
+    relay = settings.relay_token.get_secret_value()
+    if not relay:
+        raise ValueError("MINDMAP_RELAY_TOKEN: required to serve the service listener")
     app = _base_app(settings, pool, "agents-mindmap-service", agent_actor, agent=True)
-    app.add_middleware(ServiceTokenGate, tokens=[settings.relay_token.get_secret_value()])
+    app.add_middleware(ServiceTokenGate, tokens=[relay])
     return app

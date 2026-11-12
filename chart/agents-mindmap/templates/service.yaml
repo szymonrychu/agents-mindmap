@@ -1,6 +1,6 @@
-{{- $listeners := list (list "web" .Values.service.port "http") (list "service" .Values.ports.service "service") }}
+{{- $listeners := list (list "web" .Values.service.port "http") (list "service" .Values.ports.service "http") }}
 {{- if include "agents-mindmap.delegateEnabled" . }}
-{{- $listeners = append $listeners (list "delegate" .Values.ports.delegate "delegate") }}
+{{- $listeners = append $listeners (list "delegate" .Values.ports.delegate "http") }}
 {{- end }}
 {{- range $l := $listeners }}
 ---
@@ -10,7 +10,7 @@ metadata:
   name: {{ include "agents-mindmap.fullname" $ }}-{{ index $l 0 }}
   labels:
     {{- include "agents-mindmap.labels" $ | nindent 4 }}
-    app.kubernetes.io/component: api
+    app.kubernetes.io/component: {{ index $l 0 }}
 spec:
   type: {{ $.Values.service.type }}
   ports:
@@ -19,5 +19,5 @@ spec:
       targetPort: {{ index $l 2 }}
       protocol: TCP
   selector:
-    {{- include "agents-mindmap.componentLabels" (dict "context" $ "component" "api") | nindent 4 }}
+    {{- include "agents-mindmap.componentLabels" (dict "context" $ "component" (index $l 0)) | nindent 4 }}
 {{- end }}

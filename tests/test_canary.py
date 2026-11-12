@@ -154,7 +154,6 @@ async def test_canary_every_route(doc, method, path, db_url, pool, caplog):
             "map",
             "status",
             "after",
-            "after_id",
             "limit",
             "key",
             "depth",

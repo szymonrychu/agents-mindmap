@@ -6,7 +6,7 @@ import pytest
 from agents_mindmap import runtime
 from agents_mindmap.cli import EXIT_CONFIG, build_parser, main
 
-IMPLEMENTED = ("serve", "migrate")
+IMPLEMENTED = ("serve-web", "serve-service", "serve-delegate", "migrate")
 LATER = ("notifier", "embedder", "reembed")
 
 
@@ -58,16 +58,41 @@ def test_no_command_exits_2():
 def test_bad_config_exits_78_naming_variables(command, capsys):
     assert main([command]) == EXIT_CONFIG
     err = capsys.readouterr().err
-    for name in ("DATABASE_URL", "ORCHESTRATOR_URL", "PUBLIC_BASE_URL", "RELAY_TOKEN"):
+    for name in ("DATABASE_URL", "ORCHESTRATOR_URL", "PUBLIC_BASE_URL"):
         assert f"MINDMAP_{name}" in err
 
 
-def test_serve_runs_runtime_main(monkeypatch):
+def test_serve_web_runs_without_relay_or_delegate_tokens(monkeypatch):
+    set_env(monkeypatch)
+    monkeypatch.delenv("MINDMAP_RELAY_TOKEN")
+    calls = []
+    monkeypatch.setattr(runtime, "main", lambda s, listener: calls.append(listener) or 0)
+    assert main(["serve-web"]) == 0
+    assert calls == ["web"]
+
+
+def test_serve_service_needs_the_relay_token(monkeypatch, capsys):
     set_env(monkeypatch)
     calls = []
-    monkeypatch.setattr(runtime, "main", lambda s: calls.append(s.http_port) or 0)
-    assert main(["serve"]) == 0
-    assert calls == [8080]
+    monkeypatch.setattr(runtime, "main", lambda s, listener: calls.append(listener) or 0)
+    assert main(["serve-service"]) == 0
+    assert calls == ["service"]
+    monkeypatch.delenv("MINDMAP_RELAY_TOKEN")
+    assert main(["serve-service"]) == EXIT_CONFIG
+    assert "MINDMAP_RELAY_TOKEN" in capsys.readouterr().err
+    assert calls == ["service"]
+
+
+def test_serve_delegate_needs_delegate_tokens(monkeypatch, capsys):
+    set_env(monkeypatch)
+    monkeypatch.delenv("MINDMAP_RELAY_TOKEN")
+    calls = []
+    monkeypatch.setattr(runtime, "main", lambda s, listener: calls.append(listener) or 0)
+    assert main(["serve-delegate"]) == EXIT_CONFIG
+    assert "MINDMAP_DELEGATE_TOKENS" in capsys.readouterr().err
+    monkeypatch.setenv("MINDMAP_DELEGATE_TOKENS", "delegate-value")
+    assert main(["serve-delegate"]) == 0
+    assert calls == ["delegate"]
 
 
 def test_migrate_applies_and_reports(monkeypatch, empty_db_url, capsys):

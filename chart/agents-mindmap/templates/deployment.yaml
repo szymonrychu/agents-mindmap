@@ -1,16 +1,29 @@
 {{- $tag := include "agents-mindmap.imageTag" . }}
 {{- $image := printf "%s:%s" .Values.image.repository $tag }}
 {{- $settingsSum := include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-{{- $labels := dict "context" . "component" "api" }}
+{{- /* One Deployment per listener (the sibling pattern of agents-vault and agents-taskboard):
+the oauth2-proxy admission webhook protects the first port of the first container of a pod, so
+only the web pod carries its annotations; the service and delegate listeners stay in-cluster
+and bearer-gated, each pod holding only the token it verifies. */ -}}
+{{- $components := list "web" "service" }}
+{{- if include "agents-mindmap.delegateEnabled" . }}
+{{- $components = append $components "delegate" }}
+{{- end }}
+{{- range $component := $components }}
+{{- $cfg := index $.Values.components $component }}
+{{- $port := index $.Values.ports $component }}
+{{- $labels := dict "context" $ "component" $component }}
+{{- $secrets := dict "web" (list "orchestrator") "service" (list "orchestrator" "relay") "delegate" (list "orchestrator" "delegate") }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "agents-mindmap.fullname" . }}-api
+  name: {{ include "agents-mindmap.fullname" $ }}-{{ $component }}
   labels:
-    {{- include "agents-mindmap.labels" . | nindent 4 }}
-    app.kubernetes.io/component: api
+    {{- include "agents-mindmap.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}
 spec:
-  replicas: {{ .Values.api.replicas | default 1 }}
+  replicas: {{ $cfg.replicas | default 1 }}
   selector:
     matchLabels:
       {{- include "agents-mindmap.componentLabels" $labels | nindent 6 }}
@@ -18,73 +31,68 @@ spec:
     metadata:
       annotations:
         checksum/settings: {{ $settingsSum }}
-        {{- with (include "agents-mindmap.oauth2Annotations" .) }}
+        {{- if eq $component "web" }}
+        {{- with (include "agents-mindmap.oauth2Annotations" $) }}
         {{- . | nindent 8 }}
         {{- end }}
-        {{- with .Values.api.podAnnotations }}
+        {{- end }}
+        {{- with $cfg.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
-        {{- include "agents-mindmap.labels" . | nindent 8 }}
-        app.kubernetes.io/component: api
-        {{- with .Values.podLabels }}
+        {{- include "agents-mindmap.labels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $component }}
+        {{- with $.Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- include "agents-mindmap.imagePullSecrets" . | nindent 6 }}
-      serviceAccountName: {{ include "agents-mindmap.serviceAccountName" . }}
+      {{- include "agents-mindmap.imagePullSecrets" $ | nindent 6 }}
+      serviceAccountName: {{ include "agents-mindmap.serviceAccountName" $ }}
       automountServiceAccountToken: false
-      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
-      {{- with .Values.podSecurityContext }}
+      terminationGracePeriodSeconds: {{ $.Values.terminationGracePeriodSeconds }}
+      {{- with $.Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
         - name: migrate
-          {{- with .Values.securityContext }}
+          {{- with $.Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           image: {{ $image | quote }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
           command: ["mindmap"]
           args: ["migrate"]
-          {{- include "agents-mindmap.env" . | nindent 10 }}
+          {{- include "agents-mindmap.env" (dict "ctx" $ "secrets" (list)) | nindent 10 }}
           volumeMounts:
             - name: tmp
               mountPath: /tmp
       containers:
-        - name: api
-          {{- with .Values.securityContext }}
+        - name: {{ $component }}
+          {{- with $.Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           image: {{ $image | quote }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
           command: ["mindmap"]
-          args: ["serve"]
-          {{- include "agents-mindmap.env" . | nindent 10 }}
+          args: [{{ printf "serve-%s" $component | quote }}]
+          {{- include "agents-mindmap.env" (dict "ctx" $ "secrets" (index $secrets $component)) | nindent 10 }}
           ports:
             - name: http
-              containerPort: {{ .Values.ports.web }}
+              containerPort: {{ $port }}
               protocol: TCP
-            - name: service
-              containerPort: {{ .Values.ports.service }}
-              protocol: TCP
-            {{- if include "agents-mindmap.delegateEnabled" . }}
-            - name: delegate
-              containerPort: {{ .Values.ports.delegate }}
-              protocol: TCP
-            {{- end }}
+          {{- /* by number: the oauth2-proxy webhook gives the name http to its sidecar */}}
           livenessProbe:
             httpGet:
               path: /healthz
-              port: {{ .Values.ports.web }}
+              port: {{ $port }}
           readinessProbe:
             httpGet:
               path: /readyz
-              port: {{ .Values.ports.web }}
-          {{- with .Values.api.resources }}
+              port: {{ $port }}
+          {{- with $cfg.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -94,15 +102,16 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-      {{- with .Values.nodeSelector }}
+      {{- with $.Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with $.Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with $.Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}

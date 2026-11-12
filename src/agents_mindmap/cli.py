@@ -78,14 +78,29 @@ def _migrate(settings: Settings) -> int:
     return 0
 
 
-def _serve(settings: Settings) -> int:
-    from agents_mindmap import runtime
+def _serve(listener: str) -> Callable[[Settings], int]:
+    def run(settings: Settings) -> int:
+        from agents_mindmap import runtime
 
-    return runtime.main(settings)
+        if listener == "service" and not settings.relay_token.get_secret_value():
+            print("MINDMAP_RELAY_TOKEN: required to serve the service listener", file=sys.stderr)
+            return EXIT_CONFIG
+        if listener == "delegate" and not settings.delegate_tokens:
+            print(
+                "MINDMAP_DELEGATE_TOKENS: required to serve the delegate listener", file=sys.stderr
+            )
+            return EXIT_CONFIG
+        return runtime.main(settings, listener)
+
+    return run
 
 
 register("migrate", _configured(_migrate), "apply the schema migrations and exit")
-register("serve", _configured(_serve), "serve the web, service and delegate http listeners")
+register("serve-web", _configured(_serve("web")), "serve the user-facing http api")
+register("serve-service", _configured(_serve("service")), "serve the orchestrator relay http api")
+register(
+    "serve-delegate", _configured(_serve("delegate")), "serve the cluster-only delegate http api"
+)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
-"""Process entry point of `mindmap serve`: one pool and the web, service and (when delegate
-tokens are set) delegate listeners in one process, until SIGTERM or SIGINT."""
+"""Process entry point of `mindmap serve-web | serve-service | serve-delegate`: one pool and one
+listener per process (each runs in its own pod, holding only its own tokens), until SIGTERM or
+SIGINT."""
 
 from __future__ import annotations
 
@@ -83,40 +84,42 @@ def _config(settings: Settings, app: FastAPI, port: int) -> uvicorn.Config:
     )
 
 
-def _apps(settings: Settings, pool: AsyncConnectionPool) -> list[tuple[FastAPI, int]]:
-    apps = [
-        (create_web_app(settings, pool), settings.http_port),
-        (create_service_app(settings, pool), settings.service_port),
-    ]
-    if settings.delegate_tokens:
-        apps.append((create_delegate_app(settings, pool), settings.delegate_port))
-    else:
-        log.info("delegate listener off: MINDMAP_DELEGATE_TOKENS is empty")
-    return apps
+LISTENERS = ("web", "service", "delegate")
 
 
-async def serve(settings: Settings, stop: asyncio.Event) -> None:
-    """Serve every listener until `stop` is set or one listener ends; then stop them all."""
+def _app(settings: Settings, pool: AsyncConnectionPool, listener: str) -> tuple[FastAPI, int]:
+    if listener == "web":
+        return create_web_app(settings, pool), settings.http_port
+    if listener == "service":
+        return create_service_app(settings, pool), settings.service_port
+    if listener == "delegate":
+        return create_delegate_app(settings, pool), settings.delegate_port
+    raise ValueError(f"unknown listener {listener!r}")
+
+
+async def serve(settings: Settings, stop: asyncio.Event, listener: str) -> None:
+    """Serve one listener until `stop` is set or it ends."""
     pool = await open_pool(settings)
     try:
         await verify_embedding_config(pool, settings)
-        servers = [_Server(_config(settings, app, port)) for app, port in _apps(settings, pool)]
-        serving = [asyncio.create_task(s.serve()) for s in servers]
+        app, port = _app(settings, pool, listener)
+        server = _Server(_config(settings, app, port))
+        serving = asyncio.create_task(server.serve())
         stopping = asyncio.create_task(stop.wait())
-        await asyncio.wait({*serving, stopping}, return_when=asyncio.FIRST_COMPLETED)
-        for server in servers:
-            server.should_exit = True
+        await asyncio.wait({serving, stopping}, return_when=asyncio.FIRST_COMPLETED)
+        server.should_exit = True
         stopping.cancel()
-        await asyncio.gather(*serving)
+        await serving
     finally:
         await pool.close()
 
 
-def main(settings: Settings) -> int:
-    """`mindmap serve`."""
+def main(settings: Settings, listener: str) -> int:
+    """`mindmap serve-<listener>`."""
     logging.basicConfig(level=settings.log_level.upper(), format=LOG_FORMAT, force=True)
     return asyncio.run(
         run_service(
-            lambda stop: serve(settings, stop), grace_seconds=settings.shutdown_grace_seconds
+            lambda stop: serve(settings, stop, listener),
+            grace_seconds=settings.shutdown_grace_seconds,
         )
     )

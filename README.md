@@ -28,9 +28,13 @@ Run from this directory with mise:
 The `mindmap` entry point (`uv run mindmap <command>`):
 
 - `mindmap migrate` - apply the schema migrations to the service's own database and exit.
-- `mindmap serve` - serve the web listener on `MINDMAP_HTTP_PORT` (source allowlist), the
-  service listener on `MINDMAP_SERVICE_PORT` (bearer `MINDMAP_RELAY_TOKEN`) and, when
-  `MINDMAP_DELEGATE_TOKENS` is set, the delegate listener on `MINDMAP_DELEGATE_PORT`.
+- `mindmap serve-web` - serve the web listener on `MINDMAP_HTTP_PORT` (source allowlist).
+- `mindmap serve-service` - serve the service listener on `MINDMAP_SERVICE_PORT` (bearer
+  `MINDMAP_RELAY_TOKEN`, required here only).
+- `mindmap serve-delegate` - serve the delegate listener on `MINDMAP_DELEGATE_PORT` (bearer
+  `MINDMAP_DELEGATE_TOKENS`, required here only).
+
+Each listener runs in its own process and pod, so a pod holds only the tokens it uses.
 
 ## Configuration
 
@@ -102,7 +106,7 @@ actor behind `Authorization: Bearer <delegate token>` (`401 unauthorized` otherw
 - `POST /knowledge/notes` - capture a knowledge note
 - `GET /search` - lexical search
 - `GET /events` - change feed as JSON: events past `after` in id order (`project`, `limit`)
-- `GET /stream` - change feed as server-sent events (`project`, `after_id` or `Last-Event-ID`)
+- `GET /stream` - change feed as server-sent events (`project`, `after` or `Last-Event-ID`)
 
 The stream sends `mindmap_changed` events with `id: <events.id>` and data
 `{"project", "map", "node", "kind", "id"}` (keys and kind only, never note text). A client that

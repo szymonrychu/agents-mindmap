@@ -64,8 +64,8 @@ notifier:
     limits: {memory: 128Mi}
 
 # SSO for the web listener: the cluster's oauth2-proxy admission webhook injects the sidecar
-# from these pod annotations (it reads the first container and its first port, the web
-# listener). The service and delegate listeners are bearer-gated and never reached through it.
+# from these pod annotations. They are set on the web Deployment only; the service and delegate
+# listeners run in their own pods, bearer-gated and never reached through it.
 oauth2Proxy:
   enabled: false
   redeemUrl: ""
@@ -84,13 +84,27 @@ ports:
   delegate: 8081
   service: 8082
 
-# The api Deployment runs `mindmap serve`: the web, service and (optional) delegate listeners.
-api:
-  replicas: 1
-  podAnnotations: {}
-  resources:
-    requests: {cpu: 50m, memory: 128Mi}
-    limits: {memory: 256Mi}
+# One Deployment per listener: web (`mindmap serve-web`, the only one behind oauth2), service
+# (`serve-service`, relay bearer) and delegate (`serve-delegate`, only with a delegate token Secret).
+components:
+  web:
+    replicas: 1
+    podAnnotations: {}
+    resources:
+      requests: {cpu: 50m, memory: 128Mi}
+      limits: {memory: 256Mi}
+  service:
+    replicas: 1
+    podAnnotations: {}
+    resources:
+      requests: {cpu: 25m, memory: 128Mi}
+      limits: {memory: 256Mi}
+  delegate:
+    replicas: 1
+    podAnnotations: {}
+    resources:
+      requests: {cpu: 25m, memory: 128Mi}
+      limits: {memory: 256Mi}
 
 podLabels: {}
 terminationGracePeriodSeconds: 30

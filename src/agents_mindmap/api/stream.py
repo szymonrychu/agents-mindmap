@@ -8,7 +8,7 @@ each change out to the in-process subscribers. NOTIFY on `mindmap_changed` (one 
 connection) only wakes the poll early, so a missed NOTIFY, or a down listener, delays an update
 by at most one poll interval and never duplicates one.
 
-Catch-up: a client that reconnects with `Last-Event-ID: <n>` or `?after_id=<n>` (the larger
+Catch-up: a client that reconnects with `Last-Event-ID: <n>` or `?after=<n>` (the larger
 wins) first gets, in id order and within `?project=`, one event per map and node changed past
 `n`, then the live feed. When `n` is below the oldest kept events row the stream sends one
 `reset` instead: the client refetches.
@@ -251,7 +251,7 @@ async def replay(
 
 
 def _cursor(header: str | None, query: int | None) -> int | None:
-    """The larger of the `Last-Event-ID` header (ignored when not a number) and `after_id`."""
+    """The larger of the `Last-Event-ID` header (ignored when not a number) and `after`."""
     ids = [query] if query is not None else []
     if header is not None and header.strip().isdigit():
         ids.append(int(header.strip()))
@@ -306,7 +306,7 @@ def build_router() -> APIRouter:
     async def stream(
         request: Request,
         project: Annotated[Project | None, Query()] = None,
-        after_id: Annotated[int | None, Query(ge=0)] = None,
+        after: Annotated[int | None, Query(ge=0)] = None,
         last_event_id: Annotated[str | None, Header(alias="Last-Event-ID")] = None,
     ) -> AsyncIterator[ServerSentEvent]:
         """Server-sent `mindmap_changed` events (and `reset` when the cursor is too old)."""
@@ -314,10 +314,10 @@ def build_router() -> APIRouter:
         sub = hub.subscribe()
         try:
             sent = 0
-            after = _cursor(last_event_id, after_id)
-            if after is not None:
+            cursor = _cursor(last_event_id, after)
+            if cursor is not None:
                 await hub.ready()
-                reset, changes = await replay(hub.pool, after, project)
+                reset, changes = await replay(hub.pool, cursor, project)
                 if reset is not None:
                     sent = reset
                     yield ServerSentEvent(data={}, event="reset", id=str(reset))

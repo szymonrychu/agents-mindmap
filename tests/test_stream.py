@@ -186,7 +186,7 @@ async def test_last_event_id_replays_once_per_node(db_url, web_client, web_app):
         await no_more(sse)
 
 
-async def test_after_id_query_and_larger_cursor_wins(db_url, web_client, web_app):
+async def test_after_query_and_larger_cursor_wins(db_url, web_client, web_app):
     made = await make_map(web_client)
     first = last_event_id(db_url)
     await web_client.post(f"/maps/{made['key']}/nodes", json={"topic": "a"})
@@ -194,13 +194,13 @@ async def test_after_id_query_and_larger_cursor_wins(db_url, web_client, web_app
     async with (
         serve(web_app) as base,
         open_stream(
-            web_app, base, params={"after_id": first}, headers={"Last-Event-ID": str(second)}
+            web_app, base, params={"after": first}, headers={"Last-Event-ID": str(second)}
         ) as sse,
     ):
         await no_more(sse)  # the header (larger) already covers every row
     async with (
         serve(web_app) as base,
-        open_stream(web_app, base, params={"after_id": first}) as sse,
+        open_stream(web_app, base, params={"after": first}) as sse,
     ):
         assert int((await sse.next())["id"]) == second
 
@@ -260,7 +260,7 @@ async def test_delegate_app_serves_the_stream(db_url, pool):
         assert ok.status_code == 200
 
 
-async def test_events_route_pages_after_id(db_url, web_client):
+async def test_events_route_pages_after(db_url, web_client):
     made = await make_map(web_client)
     other = await make_map(web_client, project="p2", slug="two", title="two")
     for _ in range(2):
@@ -284,6 +284,6 @@ async def test_events_route_pages_after_id(db_url, web_client):
 
 
 async def test_stream_rejects_bad_cursor(web_client):
-    r = await web_client.get("/stream", params={"after_id": -1})
+    r = await web_client.get("/stream", params={"after": -1})
     assert r.status_code == 422
     assert set(r.json()) == {"error"}

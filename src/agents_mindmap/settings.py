@@ -37,7 +37,7 @@ class Settings(BaseServiceSettings):
     service_port: Port = 8082
     public_base_url: str
     orchestrator_url: str
-    relay_token: SecretStr = Field(repr=False)
+    relay_token: SecretStr = Field(SecretStr(""), repr=False)
     delegate_tokens: Annotated[list[SecretStr], NoDecode] = Field([], repr=False)
     orchestrator_token: SecretStr = Field(SecretStr(""), repr=False)
     taskboard_url: str = ""
@@ -78,13 +78,6 @@ class Settings(BaseServiceSettings):
         if not value:
             return value
         return _absolute_url(value, f"MINDMAP_{str(info.field_name).upper()}")
-
-    @field_validator("relay_token")
-    @classmethod
-    def _relay(cls, value: SecretStr) -> SecretStr:
-        if not value.get_secret_value().strip():
-            raise ValueError("MINDMAP_RELAY_TOKEN::required")
-        return value
 
     @model_validator(mode="after")
     def _ports(self) -> "Settings":

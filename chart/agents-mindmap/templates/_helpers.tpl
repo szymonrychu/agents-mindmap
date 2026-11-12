@@ -86,8 +86,8 @@ MINDMAP_HTTP_PORT: {{ .Values.ports.web | int | toString | quote }}
 MINDMAP_SERVICE_PORT: {{ .Values.ports.service | int | toString | quote }}
 MINDMAP_DELEGATE_PORT: {{ .Values.ports.delegate | int | toString | quote }}
 MINDMAP_ALLOWED_CIDRS: {{ join "," .Values.allowedCidrs | quote }}
-{{- with .Values.taskboard.url }}
-MINDMAP_TASKBOARD_URL: {{ . | quote }}
+{{- if .Values.taskboard.url }}
+{{- $_ := required "agents-mindmap: taskboard.tokenSecret.name is required when taskboard.url is set" .Values.taskboard.tokenSecret.name }}
 {{- end }}
 {{- with .Values.embedder.url }}
 MINDMAP_EMBEDDER_URL: {{ . | quote }}
@@ -100,20 +100,29 @@ MINDMAP_EMBEDDER_URL: {{ . | quote }}
 {{- end }}
 {{- end }}
 
-{{/* Container env: the settings ConfigMap and the secret values from external Secrets. */}}
+{{/* Container env: the settings ConfigMap, the database DSN and only the secrets the container
+uses (secrets invariant 9). Call with (dict "ctx" . "secrets" (list "orchestrator" "relay" "delegate" "taskboard")). */}}
 {{- define "agents-mindmap.env" -}}
+{{- $ctx := .ctx -}}
+{{- $v := $ctx.Values -}}
 envFrom:
   - configMapRef:
-      name: {{ include "agents-mindmap.fullname" . }}-settings
+      name: {{ include "agents-mindmap.fullname" $ctx }}-settings
 env:
-  {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_DATABASE_URL" "secret" (required "agents-mindmap: postgres.existingSecret is required" .Values.postgres.existingSecret) "key" .Values.postgres.existingSecretKey) | nindent 2 }}
-  {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_ORCHESTRATOR_TOKEN" "secret" (required "agents-mindmap: orchestrator.tokenSecret.name is required" .Values.orchestrator.tokenSecret.name) "key" .Values.orchestrator.tokenSecret.key) | nindent 2 }}
-  {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_RELAY_TOKEN" "secret" (required "agents-mindmap: relayTokenSecret.name is required" .Values.relayTokenSecret.name) "key" .Values.relayTokenSecret.key) | nindent 2 }}
-  {{- if include "agents-mindmap.delegateEnabled" . }}
-  {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_DELEGATE_TOKENS" "secret" .Values.delegate.tokensSecret.name "key" .Values.delegate.tokensSecret.key) | nindent 2 }}
+  {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_DATABASE_URL" "secret" (required "agents-mindmap: postgres.existingSecret is required" $v.postgres.existingSecret) "key" $v.postgres.existingSecretKey) | nindent 2 }}
+  {{- if has "orchestrator" .secrets }}
+  {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_ORCHESTRATOR_TOKEN" "secret" (required "agents-mindmap: orchestrator.tokenSecret.name is required" $v.orchestrator.tokenSecret.name) "key" $v.orchestrator.tokenSecret.key) | nindent 2 }}
   {{- end }}
-  {{- if .Values.taskboard.url }}
-  {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_TASKBOARD_TOKEN" "secret" (required "agents-mindmap: taskboard.tokenSecret.name is required when taskboard.url is set" .Values.taskboard.tokenSecret.name) "key" .Values.taskboard.tokenSecret.key) | nindent 2 }}
+  {{- if has "relay" .secrets }}
+  {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_RELAY_TOKEN" "secret" (required "agents-mindmap: relayTokenSecret.name is required" $v.relayTokenSecret.name) "key" $v.relayTokenSecret.key) | nindent 2 }}
+  {{- end }}
+  {{- if has "delegate" .secrets }}
+  {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_DELEGATE_TOKENS" "secret" $v.delegate.tokensSecret.name "key" $v.delegate.tokensSecret.key) | nindent 2 }}
+  {{- end }}
+  {{- if and (has "taskboard" .secrets) $v.taskboard.url }}
+  - name: MINDMAP_TASKBOARD_URL
+    value: {{ $v.taskboard.url | quote }}
+  {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_TASKBOARD_TOKEN" "secret" (required "agents-mindmap: taskboard.tokenSecret.name is required when taskboard.url is set" $v.taskboard.tokenSecret.name) "key" $v.taskboard.tokenSecret.key) | nindent 2 }}
   {{- end }}
 {{- end }}
 
