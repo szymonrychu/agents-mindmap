@@ -2,6 +2,16 @@
 
 Lessons that outlive a session. Newest first.
 
+## 2026-11-12 - actors, growth areas, edges, links, directions, knowledge (research-mindmaps Task 9)
+
+- `Actor` (api/actors.py) is resolved by one dependency (`state.resolve_actor`): `user_actor` on web and delegate (identity headers as Task 8), `agent_actor` on the service listener (`X-Orch-Session` required, `X-Orch-Projects` `*` or 1..10 distinct slugs, home first; malformed is 400 `actor_required`). Author is `user:<email>` or `session:<slug>` (session id when the slug header is absent); `events.actor_session` is the session id.
+- Reads: lists and the edge/link/direction filters use the active project list for every actor; key reads are unscoped for users (spec 3.5, archived projects included, Task 8 ruling) and 404 for agents on an inactive project. Writes: 404 for an unknown key first, then 403 `project_forbidden` before any write (scope lookups in `db/scope.py`; agents never see row counts change). Edge create needs write on the source and the destination in the active list; delete needs write on either end; one event per map an edge touches.
+- The service app mounts the same routers with `agent=True`: no hard delete of maps, nodes or growth areas (DELETE answers 405); edge and link deletes stay.
+- A direction's `task` becomes a link with relation `researched_by` (on the node when the direction names one, else the map); seed growth areas go on the named node or the map root and carry `direction_id`. Withdraw by an agent needs `origin='agent'` and `created_by` equal to its author (403 `withdraw_forbidden`).
+- Growth area text changes (and add or delete) bump the node `content_rev` but not `current_version`; reorder renumbers siblings contiguously from a zero-based `position`. PATCH takes explicit `null` for `task_key` and `grown_node` (cleared), and a `grown_node` must be in the same project and the status `grown`.
+- Node create publishes growth areas, links and edges in one transaction; a repeated `client_key` returns the first node and adds nothing. Knowledge notes create the project's knowledge map lazily under `pg_advisory_xact_lock(hashtext('knowledge:<project>'))`.
+- `GET /nodes/{key}` now carries growth areas, edges (both ends in active projects), links and open or acknowledged directions.
+
 ## 2026-11-12 - schema, maps, nodes (research-mindmaps Task 8)
 
 - `0001_mindmap.sql` hardcodes `vector(1024)` and the seeded `embedding_config` row (a static .sql cannot read Python); `test_sql_dim_matches_constant` ties them to `EMBED_DIM`/`EMBED_MODEL`. Provisional until the TEI spike (Task 20) confirms; changing it before the first deploy edits 0001, after it needs a new migration plus `reembed`. `serve` refuses to start on a mismatch (`verify_embedding_config`, names `MINDMAP_EMBED_DIM` / `MINDMAP_EMBEDDER_MODEL`).

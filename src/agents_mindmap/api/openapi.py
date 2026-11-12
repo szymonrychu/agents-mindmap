@@ -41,10 +41,14 @@ ERROR_SCHEMAS: dict[str, Any] = {
 
 _COMMON = {
     404: "unknown key (not_found)",
-    409: "conflict (version_conflict with the row version, slug_taken)",
+    409: (
+        "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists,"
+        " invalid_transition)"
+    ),
     422: (
-        "invalid request (invalid_request, project_unknown, project_archived, summary_required,"
-        " parent_cycle, parent_invalid, root_immovable)"
+        "invalid request (invalid_request, project_unknown, project_archived, project_required,"
+        " summary_required, parent_cycle, parent_invalid, root_immovable, self_edge,"
+        " task_required, grown_node_invalid, node_invalid)"
     ),
     503: "the orchestrator cannot validate the project (upstream_unavailable)",
 }
@@ -53,12 +57,14 @@ WEB_ERRORS = {
     **_COMMON,
 }
 SERVICE_ERRORS = {
+    400: "missing or malformed session or project scope headers (actor_required)",
     401: "no or an unknown bearer token (unauthorized)",
+    403: "outside the caller's project scope (project_forbidden, withdraw_forbidden)",
     **_COMMON,
 }
 
 WEB_GUARD = (403,)
-SERVICE_GUARD = (401,)
+SERVICE_GUARD = (400, 401)
 
 # (method, path under PREFIX) -> the error statuses besides the gate's, per listener.
 USER_ROUTE_ERRORS: dict[tuple[str, str], tuple[int, ...]] = {
@@ -68,16 +74,41 @@ USER_ROUTE_ERRORS: dict[tuple[str, str], tuple[int, ...]] = {
     ("get", "/maps/{key}"): (404,),
     ("patch", "/maps/{key}"): (404, 409, 422),
     ("delete", "/maps/{key}"): (404,),
-    ("post", "/maps/{key}/nodes"): (404, 422),
-    ("get", "/nodes/{key}"): (404,),
-    ("patch", "/nodes/{key}"): (404, 409, 422),
+    ("post", "/maps/{key}/nodes"): (404, 409, 422, 503),
+    ("get", "/nodes/{key}"): (404, 503),
+    ("patch", "/nodes/{key}"): (404, 409, 422, 503),
     ("delete", "/nodes/{key}"): (404, 422),
     ("get", "/nodes/{key}/versions"): (404,),
     ("get", "/nodes/{key}/versions/{v}"): (404, 422),
+    ("post", "/nodes/{key}/growth-areas"): (404, 422),
+    ("patch", "/growth-areas/{key}"): (404, 409, 422),
+    ("delete", "/growth-areas/{key}"): (404,),
+    ("post", "/edges"): (404, 409, 422, 503),
+    ("delete", "/edges/{key}"): (404,),
+    ("get", "/links"): (422, 503),
+    ("post", "/maps/{key}/links"): (404, 409, 422),
+    ("post", "/nodes/{key}/links"): (404, 409, 422),
+    ("delete", "/links/{link_id}"): (404, 422),
+    ("get", "/directions"): (422, 503),
+    ("post", "/maps/{key}/directions"): (404, 422),
+    ("patch", "/directions/{key}"): (404, 409, 422),
+    ("post", "/knowledge/notes"): (404, 409, 422, 503),
+}
+HARD_DELETES = {
+    ("delete", "/maps/{key}"),
+    ("delete", "/nodes/{key}"),
+    ("delete", "/growth-areas/{key}"),
+}
+# Agents archive instead of deleting; every agent route can fail on scope (403) and on the
+# orchestrator's active-project list (503).
+SERVICE_ROUTE_ERRORS: dict[tuple[str, str], tuple[int, ...]] = {
+    route: tuple(sorted({*statuses, 403, 503}))
+    for route, statuses in USER_ROUTE_ERRORS.items()
+    if route not in HARD_DELETES
 }
 ROUTE_ERRORS: dict[bool, dict[tuple[str, str], tuple[int, ...]]] = {
     False: USER_ROUTE_ERRORS,
-    True: {},
+    True: SERVICE_ROUTE_ERRORS,
 }
 
 

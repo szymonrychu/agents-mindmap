@@ -17,7 +17,8 @@ from psycopg_pool import AsyncConnectionPool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from agents_mindmap.api import maps, nodes
+from agents_mindmap.api import directions, edges, growth, knowledge, links, maps, nodes
+from agents_mindmap.api.actors import Actor, agent_actor, user_actor
 from agents_mindmap.api.errors import ApiError, error_response
 from agents_mindmap.projects import ProjectLookup
 from agents_mindmap.settings import Settings
@@ -61,7 +62,14 @@ class SourceAllowlist:
         await response(scope, receive, send)
 
 
-def _base_app(settings: Settings, pool: AsyncConnectionPool | None, title: str) -> FastAPI:
+def _base_app(
+    settings: Settings,
+    pool: AsyncConnectionPool | None,
+    title: str,
+    resolve_actor: Callable[[Request], Actor],
+    *,
+    agent: bool,
+) -> FastAPI:
     @contextlib.asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
@@ -70,6 +78,7 @@ def _base_app(settings: Settings, pool: AsyncConnectionPool | None, title: str) 
     app = FastAPI(title=title, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.settings = settings
     app.state.pool = pool
+    app.state.resolve_actor = resolve_actor
     app.state.projects = ProjectLookup(
         settings.orchestrator_url, settings.orchestrator_token.get_secret_value()
     )
@@ -110,6 +119,10 @@ def _base_app(settings: Settings, pool: AsyncConnectionPool | None, title: str) 
             return error_response(503, "not_ready", "database is not reachable")
         return JSONResponse({"status": "ok"})
 
+    for module in (maps, nodes, growth):
+        app.include_router(module.build_router(agent=agent), prefix=PREFIX)
+    for module in (edges, links, directions, knowledge):
+        app.include_router(module.build_router(), prefix=PREFIX)
     return app
 
 
@@ -120,10 +133,8 @@ def _user_app(
     add_gate: Callable[[FastAPI], None],
 ) -> FastAPI:
     """The user-actor app; only the admission gate differs between web and delegate."""
-    app = _base_app(settings, pool, title)
+    app = _base_app(settings, pool, title, user_actor, agent=False)
     add_gate(app)
-    for module in (maps, nodes):
-        app.include_router(module.build_router(), prefix=PREFIX)
     return app
 
 
@@ -150,8 +161,8 @@ def create_delegate_app(settings: Settings, pool: AsyncConnectionPool | None) ->
 
 
 def create_service_app(settings: Settings, pool: AsyncConnectionPool | None) -> FastAPI:
-    """The relay-facing app: bearer gate on the relay token; agent identity from the relay's
-    forwarded headers (added with the agent routes)."""
-    app = _base_app(settings, pool, "agents-mindmap-service")
+    """The relay-facing app: bearer gate on the relay token; agent identity and project scope
+    from the relay's forwarded headers. Agents archive, never hard delete."""
+    app = _base_app(settings, pool, "agents-mindmap-service", agent_actor, agent=True)
     app.add_middleware(ServiceTokenGate, tokens=[settings.relay_token.get_secret_value()])
     return app
