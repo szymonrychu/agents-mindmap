@@ -69,3 +69,8 @@ Lessons that outlive a session. Newest first.
 - Debounce stays configurable: `outbox.configure(settings.notice_debounce_seconds)` runs when an app is created (the API process is the writer); default 60 s.
 - Direction fallback: `create_direction` enqueues a `direction_notices` row only when the map has no `T-n` link (checked after the optional task link of the direction is created). The notifier posts `Mind map M-3 got direction D-7: <public>/mindmaps/M-3?direction=D-7` to every active session of the map's project plus superleaders via `SessionLookup` (copied from agents-taskboard without the label filter) and `OrchestratorClient.post_message`; a gone session is skipped, a lookup failure retries the whole notice (a duplicate to sessions already messaged is possible).
 - The notifier needs the orchestrator token as well as the taskboard token: chart secrets for the notifier are now taskboard and orchestrator (`EXPECTED_TOKENS` in test_chart updated; the earlier "notifier only the taskboard token" no longer holds). `mindmap notifier` exits 78 without `MINDMAP_TASKBOARD_URL`; `serve()` returns at once in that case.
+
+## 2026-11-12 - reset_all is an accepted second writer of nodes.embedded_rev
+
+- `reset_all` (the `reembed` CLI) runs an unguarded `UPDATE nodes SET embedded_rev = 0`, so it is a second writer of that column besides the embedder's guarded updates. Accepted exception to the one-writer rule: it is an operator-only bulk reset (forces a full re-embed after a model change), never reached by a service path.
+- It runs only while embedder work is idle. The embedder stays the only writer of `node_chunks`.
