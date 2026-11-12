@@ -1,0 +1,244 @@
+# Golden set for mindmap search (spec 3.3): 30 short notes (15 English, 15 Polish: the TEI
+# spike passages of research-mindmaps Task 20) and English and Polish queries with their relevant
+# notes, cross-lingual relevance counted. Queries: 12 questions (the spike's, semantic-shaped)
+# and 16 keyword queries (the way agents search). Lexical search ANDs every query word
+# (websearch_to_tsquery), so questions rarely match lexically: that gap is what the semantic
+# signal closes. eval/run.py seeds the notes as nodes of one map, embeds them and reports
+# recall@10 and MRR per mode. Floors: `fake` for the CI harness (lexical-only with the fake
+# embedder of the tests), `live` for hybrid search against the TEI release.
+floors:
+  fake:
+    recall_at_10: 0.5
+    mrr: 0.3
+  live:
+    recall_at_10: 0.7
+    mrr: 0.5
+nodes:
+- id: e1
+  topic: Embedder process and pgvector
+  notes: The embedder process chunks changed nodes and writes vectors to pgvector using an HNSW cosine
+    index.
+- id: e2
+  topic: Cron schedules and presets
+  notes: Cron schedules map to presets and the schedule service fires agent clusters through the orchestrator
+    API.
+- id: e3
+  topic: GitHub webhook queue
+  notes: Webhook events from GitHub are queued first in first out with deduplication and per project limits.
+- id: e4
+  topic: Vault secret storage
+  notes: The vault stores secret values as immutable Kubernetes Secrets and pins versions per session.
+- id: e5
+  topic: Plan usage windows
+  notes: Usage windows of five hours and one week are pushed by the statusLine relay to the usage service.
+- id: e6
+  topic: Postgres backups with Barman Cloud
+  notes: Postgres backups use the Barman Cloud plugin writing base backups and WAL archives to object
+    storage.
+- id: e7
+  topic: Matrix chat routing
+  notes: Matrix bridged chats are discovered automatically and allow or deny rules route them to sessions.
+- id: e8
+  topic: Boox sketch upload
+  notes: The Boox tablet app uploads multi page sketches which a translator agent turns into markdown
+    specs.
+- id: e9
+  topic: Round robin dispatch
+  notes: Round robin dispatch sends new turns to the least recently used wrapper pod in the cluster.
+- id: e10
+  topic: Transcript retention cleanup
+  notes: Retention cleanup removes old transcripts from the history service, and only the user may delete
+    them.
+- id: e11
+  topic: Mind map node anatomy
+  notes: A mind map node has research notes, growth areas and a status such as seed, growing or settled.
+- id: e12
+  topic: Hybrid search ranking
+  notes: Hybrid search combines full text search, trigram similarity and vector cosine similarity ranking.
+- id: e13
+  topic: Taskboard decisions
+  notes: The taskboard keeps decisions that are answered once and notifies the asking session.
+- id: e14
+  topic: Image pinning in helmfile
+  notes: Helmfile pins every image to a semver tag; only the embedding server uses a tag plus digest.
+- id: e15
+  topic: Claude Code sessions under a PTY
+  notes: Claude Code sessions run under a pseudo terminal and hooks report turn lifecycle events.
+- id: p1
+  topic: Proces embedder i pgvector
+  notes: Proces embedder dzieli zmienione wezly na fragmenty i zapisuje wektory w pgvector z indeksem
+    HNSW.
+- id: p2
+  topic: Harmonogramy cron i presety
+  notes: Harmonogram cron przypisuje presety, a usluga uruchamia klastry agentow przez API orkiestratora.
+- id: p3
+  topic: Kolejka webhookow GitHub
+  notes: Zdarzenia webhook z GitHuba trafiaja do kolejki FIFO z deduplikacja i limitami na projekt.
+- id: p4
+  topic: Sejf na sekrety
+  notes: Sejf przechowuje wartosci sekretow jako niezmienne sekrety Kubernetes i przypina wersje do sesji.
+- id: p5
+  topic: Kopie zapasowe Postgres
+  notes: Kopie zapasowe bazy Postgres uzywaja wtyczki Barman Cloud i zapisuja archiwa WAL w magazynie
+    obiektow.
+- id: p6
+  topic: Routing czatow Messengera
+  notes: Czaty z Messengera sa wykrywane automatycznie, a reguly zezwalaj lub blokuj kieruja je do sesji.
+- id: p7
+  topic: Szkice z tabletu Boox
+  notes: Aplikacja na tablet Boox wysyla wielostronicowe szkice, ktore agent tlumaczy na specyfikacje
+    markdown.
+- id: p8
+  topic: Budowa wezla mapy mysli
+  notes: Wezel mapy mysli ma notatki badawcze, obszary wzrostu i status, na przyklad ziarno, rosnie lub
+    ustalony.
+- id: p9
+  topic: Wyszukiwanie hybrydowe
+  notes: Wyszukiwanie hybrydowe laczy pelnotekstowe, podobienstwo trigramow i podobienstwo wektorow.
+- id: p10
+  topic: Decyzje w tablicy zadan
+  notes: Tablica zadan trzyma decyzje, na ktore odpowiada sie raz, i powiadamia sesje, ktora zapytala.
+- id: p11
+  topic: Retencja zapisow rozmow
+  notes: Czyszczenie retencji usuwa stare zapisy rozmow z uslugi historii, a kasowac moze tylko uzytkownik.
+- id: p12
+  topic: Sesje Claude Code w pseudoterminalu
+  notes: Sesje Claude Code dzialaja w pseudoterminalu, a haki raportuja zdarzenia cyklu tury.
+- id: p13
+  topic: Okna zuzycia planu
+  notes: Okna zuzycia pieciogodzinne i tygodniowe sa wysylane do uslugi zuzycia przez przekaznik statusLine.
+- id: p14
+  topic: Rownomierny przydzial tur
+  notes: Rownomierny przydzial kieruje nowe tury do najdawniej uzywanego poda opakowania w klastrze.
+- id: p15
+  topic: Przypinanie obrazow w helmfile
+  notes: Helmfile przypina kazdy obraz do tagu semver, tylko serwer osadzen uzywa tagu z digestem.
+queries:
+- q: How are vectors indexed for semantic search?
+  lang: en
+  relevant:
+  - e1
+  - e12
+- q: How do GitHub events avoid being processed twice?
+  lang: en
+  relevant:
+  - e3
+- q: Where are secret values kept?
+  lang: en
+  relevant:
+  - e4
+- q: How are database backups made?
+  lang: en
+  relevant:
+  - e6
+- q: Which statuses can a mind map node have?
+  lang: en
+  relevant:
+  - e11
+- q: Who can delete old transcripts?
+  lang: en
+  relevant:
+  - e10
+- q: Jak dziala wyszukiwanie wektorowe w bazie?
+  lang: pl
+  relevant:
+  - p1
+  - p9
+  - e1
+  - e12
+- q: Gdzie przechowywane sa sekrety?
+  lang: pl
+  relevant:
+  - p4
+  - e4
+- q: Jak robione sa kopie zapasowe bazy danych?
+  lang: pl
+  relevant:
+  - p5
+  - e6
+- q: Jakie statusy moze miec wezel mapy mysli?
+  lang: pl
+  relevant:
+  - p8
+  - e11
+- q: Kto moze usunac stare zapisy rozmow?
+  lang: pl
+  relevant:
+  - p11
+  - e10
+- q: Jak szkice z tabletu zamieniane sa na specyfikacje?
+  lang: pl
+  relevant:
+  - p7
+  - e8
+- q: pgvector HNSW
+  lang: en
+  relevant:
+  - e1
+  - p1
+  - e12
+- q: Barman Cloud WAL archives
+  lang: en
+  relevant:
+  - e6
+  - p5
+- q: round robin dispatch
+  lang: en
+  relevant:
+  - e9
+- q: webhook deduplication
+  lang: en
+  relevant:
+  - e3
+- q: semver tag digest
+  lang: en
+  relevant:
+  - e14
+  - p15
+- q: statusLine relay
+  lang: en
+  relevant:
+  - e5
+  - p13
+- q: pseudo terminal hooks
+  lang: en
+  relevant:
+  - e15
+- q: wtyczka Barman Cloud
+  lang: pl
+  relevant:
+  - p5
+  - e6
+- q: sejf sekretow
+  lang: pl
+  relevant:
+  - p4
+- q: Matrix bridged chats
+  lang: en
+  relevant:
+  - e7
+- q: Boox tablet
+  lang: en
+  relevant:
+  - e8
+  - p7
+- q: taskboard decisions
+  lang: en
+  relevant:
+  - e13
+- q: immutable Kubernetes Secrets
+  lang: en
+  relevant:
+  - e4
+- q: automatycznie wykrywane czaty
+  lang: pl
+  relevant:
+  - p6
+- q: przydzial tury
+  lang: pl
+  relevant:
+  - p14
+- q: tablica zadan decyzje
+  lang: pl
+  relevant:
+  - p10

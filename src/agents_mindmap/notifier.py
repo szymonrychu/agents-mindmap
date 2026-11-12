@@ -13,7 +13,6 @@ import logging
 import uuid
 
 import httpx
-from agents_common.db import listen
 from agents_common.orchestrator import (
     NotFound,
     OrchestratorClient,
@@ -24,8 +23,8 @@ from agents_common.runtime import advisory_singleton, run_service
 from psycopg_pool import AsyncConnectionPool
 
 from agents_mindmap.db import outbox
-from agents_mindmap.db.events import CHANNEL
 from agents_mindmap.db.keys import fmt_key
+from agents_mindmap.loop import sleep_or_wake, wake_on_notify
 from agents_mindmap.runtime import open_pool
 from agents_mindmap.settings import Settings
 
@@ -203,20 +202,6 @@ async def send_next_direction(
     return True
 
 
-async def _wake_on_notify(url: str, wake: asyncio.Event) -> None:
-    async for _ in listen(url, CHANNEL):
-        wake.set()
-
-
-async def _sleep(seconds: float, wake: asyncio.Event, stop: asyncio.Event) -> None:
-    waits = [asyncio.create_task(e.wait()) for e in (wake, stop)]
-    try:
-        await asyncio.wait(waits, timeout=seconds, return_when=asyncio.FIRST_COMPLETED)
-    finally:
-        for w in waits:
-            w.cancel()
-
-
 async def run_notifier(
     settings: Settings,
     stop: asyncio.Event,
@@ -243,7 +228,7 @@ async def run_notifier(
         orchestrator = OrchestratorClient(settings.orchestrator_url, token)
         owned.append(orchestrator)
     wake = asyncio.Event()
-    listener = asyncio.create_task(_wake_on_notify(settings.database_url.get_secret_value(), wake))
+    listener = asyncio.create_task(wake_on_notify(settings.database_url.get_secret_value(), wake))
     base, cap = settings.notifier_poll_seconds, settings.notifier_backoff_max_seconds
     try:
         async with advisory_singleton(pool, LOCK_NAME):
@@ -254,7 +239,7 @@ async def run_notifier(
                     pool, lookup, orchestrator, settings.public_base_url, base, cap
                 )
                 if task is None and direction is None:
-                    await _sleep(base, wake, stop)
+                    await sleep_or_wake(base, wake, stop)
     finally:
         listener.cancel()
         with contextlib.suppress(asyncio.CancelledError):

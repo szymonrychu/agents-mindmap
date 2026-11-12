@@ -1,13 +1,16 @@
-"""Read routes over the graph: node traversal, map graph and lexical search. Every actor reads
+"""Read routes over the graph: node traversal, map graph and hybrid search. Every actor reads
 the active projects (spec 3.5); a user addressing a key in an archived project is unscoped, so
 the walk may also enter that start project, and no other inactive one."""
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Annotated, Literal, get_args
 
 from fastapi import APIRouter, Query, Request
 
+from agents_mindmap import embeddings
 from agents_mindmap.api.actors import Actor, ActorDep, require_readable
 from agents_mindmap.api.common import lookup_of, pool_of
 from agents_mindmap.api.errors import ApiError
@@ -23,6 +26,7 @@ from agents_mindmap.db import maps as maps_db
 from agents_mindmap.db import nodes as nodes_db
 from agents_mindmap.db import search as search_db
 from agents_mindmap.db import traverse as traverse_db
+from agents_mindmap.embeddings import EmbedderUnavailable, EmbeddingProvider
 from agents_mindmap.projects import ProjectLookup
 
 Scope = Literal["own", "all"]
@@ -30,6 +34,22 @@ Follow = Literal["out", "in", "both"]
 Mode = Literal["hybrid", "lexical", "semantic"]
 EDGE_KINDS = list(get_args(EdgeKind))
 Q_MAX = 200
+
+log = logging.getLogger(__name__)
+
+
+async def query_vector(provider: EmbeddingProvider | None, text: str) -> list[float] | None:
+    """The query embedding, or None when there is no embedder, it fails or it takes longer
+    than QUERY_TIMEOUT_SECONDS. Called with no database connection held."""
+    if provider is None:
+        return None
+    try:
+        async with asyncio.timeout(embeddings.QUERY_TIMEOUT_SECONDS):
+            (vector,) = await provider.embed([text], query=True)
+    except (EmbedderUnavailable, TimeoutError) as exc:
+        log.warning("query embedding unavailable, searching lexically: %s", type(exc).__name__)
+        return None
+    return vector
 
 
 async def scoped(actor: Actor, lookup: ProjectLookup, scope: Scope) -> list[str]:
@@ -115,28 +135,36 @@ def build_router() -> APIRouter:
         mode: Mode = "hybrid",
         limit: Annotated[int, Query(ge=1)] = 20,
     ) -> SearchResponse:
-        # no embedder yet: every mode answers with the lexical signals and `semantic: false`
         # a user searches unscoped (spec 3.5, archived projects included); agents the active ones
         projects = None if actor.kind == "user" else await scoped(actor, lookup_of(request), scope)
         if project is not None:
             projects = [project] if projects is None else [p for p in projects if p == project]
         text = q.replace("\x00", " ").strip()
+        searching = bool(text) and projects != []
+        vector = None
+        if searching and mode != "lexical":
+            # embedded before a connection is taken: never inside a transaction
+            vector = await query_vector(request.app.state.embedder, text)
         async with pool_of(request).connection() as conn:
             hits = (
-                await search_db.lexical_search(
+                await search_db.hybrid_search(
                     conn,
                     text,
+                    vector,
                     projects=projects,
                     map_key=map,
                     status=status,
                     limit=min(limit, search_db.MAX_LIMIT),
+                    mode=mode,
                 )
-                if text and projects != []
+                if searching
                 else []
             )
             pending = await search_db.pending_embedding(conn, projects)
         return SearchResponse(
-            items=[HitView.of(h) for h in hits], semantic=False, pending_embedding=pending
+            items=[HitView.of(h) for h in hits],
+            semantic=vector is not None,
+            pending_embedding=pending,
         )
 
     return router
