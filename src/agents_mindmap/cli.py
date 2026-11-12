@@ -1,7 +1,6 @@
 """argparse front end of the `mindmap` console script, with a command registry.
 
-Only implemented commands are registered: `embedder` and `reembed` (Task 21) are added with
-their code, so no release ships a stub."""
+Only implemented commands are registered, so no release ships a stub."""
 
 from __future__ import annotations
 
@@ -78,10 +77,20 @@ def _migrate(settings: Settings) -> int:
     return 0
 
 
+def _needs_orchestrator_token(settings: Settings, what: str) -> bool:
+    """False (after naming the variable) when the command needs the token and has none."""
+    if settings.orchestrator_token.get_secret_value():
+        return True
+    print(f"MINDMAP_ORCHESTRATOR_TOKEN: required to {what}", file=sys.stderr)
+    return False
+
+
 def _serve(listener: str) -> Callable[[Settings], int]:
     def run(settings: Settings) -> int:
         from agents_mindmap import runtime
 
+        if not _needs_orchestrator_token(settings, f"serve the {listener} listener"):
+            return EXIT_CONFIG
         if listener == "service" and not settings.relay_token.get_secret_value():
             print("MINDMAP_RELAY_TOKEN: required to serve the service listener", file=sys.stderr)
             return EXIT_CONFIG
@@ -101,7 +110,28 @@ def _notifier(settings: Settings) -> int:
     if not settings.taskboard_url:
         print("MINDMAP_TASKBOARD_URL: required to run the notifier", file=sys.stderr)
         return EXIT_CONFIG
+    if not _needs_orchestrator_token(settings, "run the notifier"):
+        return EXIT_CONFIG
     return notifier.main(settings)
+
+
+def _embedder(settings: Settings) -> int:
+    from agents_mindmap import embedder
+
+    if not settings.embedder_url:
+        print("MINDMAP_EMBEDDER_URL: required to run the embedder", file=sys.stderr)
+        return EXIT_CONFIG
+    return embedder.main(settings)
+
+
+def _reembed(settings: Settings) -> int:
+    import asyncio
+
+    from agents_mindmap import embedder
+
+    count = asyncio.run(embedder.reembed(settings))
+    print(f"{count} nodes queued for re-embedding")
+    return 0
 
 
 register("migrate", _configured(_migrate), "apply the schema migrations and exit")
@@ -111,6 +141,8 @@ register(
     "serve-delegate", _configured(_serve("delegate")), "serve the cluster-only delegate http api"
 )
 register("notifier", _configured(_notifier), "drain the task and direction notice outboxes")
+register("embedder", _configured(_embedder), "chunk and embed changed nodes for semantic search")
+register("reembed", _configured(_reembed), "mark every node for re-embedding and exit")
 
 
 if __name__ == "__main__":
