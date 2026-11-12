@@ -22,4 +22,4 @@ run = "uv run pytest tests/test_chart.py"
 
 [tasks."lint:chart"]
 description = "Lint the helm chart"
-run = "helm lint chart/agents-mindmap --set publicBaseUrl=https://lab.example.test --set orchestrator.url=http://o --set postgres.existingSecret=pg --set orchestrator.tokenSecret.name=o --set relayTokenSecret.name=r"
+run = "helm lint chart/agents-mindmap --set image.tag=1.0.0 --set publicBaseUrl=https://lab.example.test --set orchestrator.url=http://o --set postgres.existingSecret=pg --set orchestrator.tokenSecret.name=o --set relayTokenSecret.name=r"

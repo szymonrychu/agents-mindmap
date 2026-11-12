@@ -9,8 +9,9 @@ areas, edges, links to tasks and specs, directions, lexical and semantic search.
 has its own Postgres database (pgvector). Agents reach it through the orchestrator relay, users
 through the Mindmaps page of agents-web.
 
-This is the scaffold: settings, the three listeners with their probes and gates, the error
-shape, the OpenAPI export and the chart skeleton. The routes come in later releases.
+Released so far: maps, nodes with versions, growth areas, edges, links, directions, knowledge
+notes, traversal, lexical search, the change feed and the chart. The notifier and semantic
+search come in later releases.
 
 ## Development
 
@@ -27,9 +28,13 @@ Run from this directory with mise:
 The `mindmap` entry point (`uv run mindmap <command>`):
 
 - `mindmap migrate` - apply the schema migrations to the service's own database and exit.
-- `mindmap serve` - serve the web listener on `MINDMAP_HTTP_PORT` (source allowlist), the
-  service listener on `MINDMAP_SERVICE_PORT` (bearer `MINDMAP_RELAY_TOKEN`) and, when
-  `MINDMAP_DELEGATE_TOKENS` is set, the delegate listener on `MINDMAP_DELEGATE_PORT`.
+- `mindmap serve-web` - serve the web listener on `MINDMAP_HTTP_PORT` (source allowlist).
+- `mindmap serve-service` - serve the service listener on `MINDMAP_SERVICE_PORT` (bearer
+  `MINDMAP_RELAY_TOKEN`, required here only).
+- `mindmap serve-delegate` - serve the delegate listener on `MINDMAP_DELEGATE_PORT` (bearer
+  `MINDMAP_DELEGATE_TOKENS`, required here only).
+
+Each listener runs in its own process and pod, so a pod holds only the tokens it uses.
 
 ## Configuration
 
@@ -70,10 +75,65 @@ listeners.
 on every listener under no prefix and are exempt from every gate. The routes live under
 `/mindmap/api/v1`. Every error answers `{"error": {"code": "...", "message": "..."}}`.
 
-## OpenAPI
+## API
 
-`uv run python -m agents_mindmap.api.openapi > openapi.json` documents the web listener;
-`--service` documents the service listener.
+Base path `/mindmap/api/v1`; JSON in and out; guarded updates carry `version` (409
+`version_conflict` answers with the current `version`); creates take an optional `client_key`
+for idempotence. Two machine-readable contracts, regenerated with
+`uv run python -m agents_mindmap.api.openapi > openapi.json` and `... --service >
+openapi-service.json`; a test fails when either drifts from the apps or when a route is missing
+from the lists below.
+
+### Web and delegate routes
+
+The web listener refuses a socket peer outside `MINDMAP_ALLOWED_CIDRS` with `403 forbidden`
+(forwarding headers are never read); the delegate listener serves the same routes as the user
+actor behind `Authorization: Bearer <delegate token>` (`401 unauthorized` otherwise).
+
+- `GET /projects` - projects with maps, with counts
+- `GET /maps` - map list (`project`, `status`, `kind`)
+- `POST /maps` - create a map with its root node
+- `GET /maps/{key}`, `PATCH /maps/{key}`, `DELETE /maps/{key}` - read, edit or archive, hard delete
+- `GET /maps/{key}/graph` - tree nodes, edges and cross-map stubs
+- `POST /maps/{key}/nodes` - create a node
+- `GET /nodes/{key}`, `PATCH /nodes/{key}`, `DELETE /nodes/{key}` - read, edit, hard delete
+- `GET /nodes/{key}/versions`, `GET /nodes/{key}/versions/{v}` - note history
+- `GET /nodes/{key}/traverse` - bounded traversal
+- `POST /nodes/{key}/growth-areas`, `PATCH /growth-areas/{key}`, `DELETE /growth-areas/{key}` - growth areas
+- `POST /edges`, `DELETE /edges/{key}` - typed edges
+- `GET /links`, `POST /maps/{key}/links`, `POST /nodes/{key}/links`, `DELETE /links/{link_id}` - task and spec links
+- `GET /directions`, `POST /maps/{key}/directions`, `PATCH /directions/{key}` - directions
+- `POST /knowledge/notes` - capture a knowledge note
+- `GET /search` - lexical search
+- `GET /events` - change feed as JSON: events past `after` in id order (`project`, `limit`)
+- `GET /stream` - change feed as server-sent events (`project`, `after` or `Last-Event-ID`)
+
+The stream sends `mindmap_changed` events with `id: <events.id>` and data
+`{"project", "map", "node", "kind", "id"}` (keys and kind only, never note text). A client that
+reconnects with `Last-Event-ID` first gets one event per map and node changed since, then the
+live feed; a cursor older than the kept events gets one `reset`. The feed is on the web and
+delegate listeners only.
+
+### Service routes
+
+The service listener answers `401 unauthorized` unless `Authorization: Bearer <relay token>`
+matches and takes the acting agent from `X-Orch-Session` (required), `X-Orch-Slug` and
+`X-Orch-Projects` (`*` or 1..10 distinct project slugs, home first; `400 actor_required`). It
+serves the routes above except hard deletes and the change feed.
+
+- `GET /projects` - projects with maps, with counts
+- `GET /maps`, `POST /maps`, `GET /maps/{key}`, `PATCH /maps/{key}` - maps
+- `GET /maps/{key}/graph` - tree nodes, edges and cross-map stubs
+- `POST /maps/{key}/nodes` - create a node
+- `GET /nodes/{key}`, `PATCH /nodes/{key}` - read, edit
+- `GET /nodes/{key}/versions`, `GET /nodes/{key}/versions/{v}` - note history
+- `GET /nodes/{key}/traverse` - bounded traversal
+- `POST /nodes/{key}/growth-areas`, `PATCH /growth-areas/{key}` - growth areas
+- `POST /edges`, `DELETE /edges/{key}` - typed edges
+- `GET /links`, `POST /maps/{key}/links`, `POST /nodes/{key}/links`, `DELETE /links/{link_id}` - task and spec links
+- `GET /directions`, `POST /maps/{key}/directions`, `PATCH /directions/{key}` - directions
+- `POST /knowledge/notes` - capture a knowledge note
+- `GET /search` - lexical search
 
 ## Conventions
 

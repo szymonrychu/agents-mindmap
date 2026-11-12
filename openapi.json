@@ -1,0 +1,3841 @@
+{
+  "components": {
+    "schemas": {
+      "DirectionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "growth_areas": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Growth Areas",
+            "type": "array"
+          },
+          "node": {
+            "anyOf": [
+              {
+                "pattern": "^N-[1-9][0-9]{0,17}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node"
+          },
+          "task": {
+            "anyOf": [
+              {
+                "pattern": "^T-[1-9][0-9]{0,17}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task"
+          },
+          "text": {
+            "maxLength": 8192,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "DirectionIn",
+        "type": "object"
+      },
+      "DirectionPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "acknowledge",
+              "resolve",
+              "withdraw"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "resolution": {
+            "default": "",
+            "maxLength": 4096,
+            "title": "Resolution",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "action"
+        ],
+        "title": "DirectionPatch",
+        "type": "object"
+      },
+      "DirectionView": {
+        "properties": {
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "acknowledged_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged By"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "growth_areas": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Growth Areas",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "map": {
+            "title": "Map",
+            "type": "string"
+          },
+          "node": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "resolution": {
+            "title": "Resolution",
+            "type": "string"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "map",
+          "node",
+          "project",
+          "text",
+          "origin",
+          "status",
+          "created_by",
+          "acknowledged_by",
+          "acknowledged_at",
+          "resolution",
+          "resolved_by",
+          "resolved_at",
+          "created_at",
+          "updated_at",
+          "version",
+          "growth_areas"
+        ],
+        "title": "DirectionView",
+        "type": "object"
+      },
+      "EdgeIn": {
+        "additionalProperties": false,
+        "properties": {
+          "dst": {
+            "pattern": "^N-[1-9][0-9]{0,17}$",
+            "title": "Dst",
+            "type": "string"
+          },
+          "kind": {
+            "default": "relates_to",
+            "enum": [
+              "relates_to",
+              "builds_on",
+              "derived_from",
+              "contradicts",
+              "supersedes",
+              "see_also"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          },
+          "src": {
+            "pattern": "^N-[1-9][0-9]{0,17}$",
+            "title": "Src",
+            "type": "string"
+          }
+        },
+        "required": [
+          "src",
+          "dst"
+        ],
+        "title": "EdgeIn",
+        "type": "object"
+      },
+      "EdgeSpec": {
+        "additionalProperties": false,
+        "description": "An edge from the node being created to `dst`.",
+        "properties": {
+          "dst": {
+            "pattern": "^N-[1-9][0-9]{0,17}$",
+            "title": "Dst",
+            "type": "string"
+          },
+          "kind": {
+            "default": "relates_to",
+            "enum": [
+              "relates_to",
+              "builds_on",
+              "derived_from",
+              "contradicts",
+              "supersedes",
+              "see_also"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dst"
+        ],
+        "title": "EdgeSpec",
+        "type": "object"
+      },
+      "EdgeView": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "dst": {
+            "title": "Dst",
+            "type": "string"
+          },
+          "dst_project": {
+            "title": "Dst Project",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "src": {
+            "title": "Src",
+            "type": "string"
+          },
+          "src_project": {
+            "title": "Src Project",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "src",
+          "src_project",
+          "dst",
+          "dst_project",
+          "kind",
+          "note",
+          "created_by",
+          "created_at"
+        ],
+        "title": "EdgeView",
+        "type": "object"
+      },
+      "ErrorBody": {
+        "additionalProperties": true,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "EventView": {
+        "properties": {
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "title": "Detail",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "map": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Map"
+          },
+          "node": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project",
+          "map",
+          "node",
+          "kind",
+          "actor",
+          "at",
+          "detail"
+        ],
+        "title": "EventView",
+        "type": "object"
+      },
+      "GrowthIn": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "GrowthIn",
+        "type": "object"
+      },
+      "GrowthPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "grown_node": {
+            "anyOf": [
+              {
+                "pattern": "^N-[1-9][0-9]{0,17}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grown Node"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "open",
+                  "taken",
+                  "grown",
+                  "dropped"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "task_key": {
+            "anyOf": [
+              {
+                "pattern": "^T-[1-9][0-9]{0,17}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Key"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "GrowthPatch",
+        "type": "object"
+      },
+      "GrowthView": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "grown_node": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grown Node"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "node": {
+            "title": "Node",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "task_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Key"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "node",
+          "text",
+          "status",
+          "task_key",
+          "grown_node",
+          "direction",
+          "position",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "version"
+        ],
+        "title": "GrowthView",
+        "type": "object"
+      },
+      "HitView": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "map": {
+            "title": "Map",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "signals": {
+            "items": {
+              "enum": [
+                "fts",
+                "trgm",
+                "semantic"
+              ],
+              "type": "string"
+            },
+            "title": "Signals",
+            "type": "array"
+          },
+          "snippet": {
+            "title": "Snippet",
+            "type": "string"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "map",
+          "project",
+          "topic",
+          "snippet",
+          "signals",
+          "score"
+        ],
+        "title": "HitView",
+        "type": "object"
+      },
+      "KnowledgeNoteIn": {
+        "additionalProperties": false,
+        "properties": {
+          "client_key": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Key"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/EdgeSpec"
+            },
+            "maxItems": 20,
+            "title": "Edges",
+            "type": "array"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/LinkIn"
+            },
+            "maxItems": 20,
+            "title": "Links",
+            "type": "array"
+          },
+          "notes": {
+            "maxLength": 65536,
+            "title": "Notes",
+            "type": "string"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "pattern": "^N-[1-9][0-9]{0,17}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent"
+          },
+          "project": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project"
+          },
+          "summary": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "topic": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic",
+          "notes",
+          "summary"
+        ],
+        "title": "KnowledgeNoteIn",
+        "type": "object"
+      },
+      "LinkIn": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          },
+          "ref_key": {
+            "pattern": "^(T|S)-[1-9][0-9]{0,17}$",
+            "title": "Ref Key",
+            "type": "string"
+          },
+          "relation": {
+            "default": "researched_by",
+            "enum": [
+              "researched_by",
+              "informs",
+              "grown_by",
+              "implements",
+              "cites",
+              "uses"
+            ],
+            "title": "Relation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref_key"
+        ],
+        "title": "LinkIn",
+        "type": "object"
+      },
+      "LinkView": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "map": {
+            "title": "Map",
+            "type": "string"
+          },
+          "node": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "ref_key": {
+            "title": "Ref Key",
+            "type": "string"
+          },
+          "relation": {
+            "title": "Relation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "map",
+          "node",
+          "project",
+          "ref_key",
+          "relation",
+          "note",
+          "created_by",
+          "created_at"
+        ],
+        "title": "LinkView",
+        "type": "object"
+      },
+      "MapIn": {
+        "additionalProperties": false,
+        "properties": {
+          "client_key": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Key"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 8192,
+            "title": "Description",
+            "type": "string"
+          },
+          "kind": {
+            "default": "research",
+            "enum": [
+              "research",
+              "knowledge"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "project": {
+            "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+            "title": "Project",
+            "type": "string"
+          },
+          "root_topic": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root Topic"
+          },
+          "slug": {
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "slug",
+          "title"
+        ],
+        "title": "MapIn",
+        "type": "object"
+      },
+      "MapPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "active",
+                  "archived"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "MapPatch",
+        "type": "object"
+      },
+      "MapView": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "root": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Root"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "project",
+          "slug",
+          "kind",
+          "title",
+          "description",
+          "root",
+          "status",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "version"
+        ],
+        "title": "MapView",
+        "type": "object"
+      },
+      "NodeIn": {
+        "additionalProperties": false,
+        "properties": {
+          "client_key": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Key"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/EdgeSpec"
+            },
+            "maxItems": 20,
+            "title": "Edges",
+            "type": "array"
+          },
+          "growth_areas": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Growth Areas",
+            "type": "array"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/LinkIn"
+            },
+            "maxItems": 20,
+            "title": "Links",
+            "type": "array"
+          },
+          "notes": {
+            "default": "",
+            "maxLength": 65536,
+            "title": "Notes",
+            "type": "string"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "pattern": "^N-[1-9][0-9]{0,17}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent"
+          },
+          "status": {
+            "default": "seed",
+            "enum": [
+              "seed",
+              "growing",
+              "settled",
+              "stale",
+              "archived"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "default": "created",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "topic": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "title": "NodeIn",
+        "type": "object"
+      },
+      "NodePatch": {
+        "additionalProperties": false,
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 65536,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "pattern": "^N-[1-9][0-9]{0,17}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "seed",
+                  "growing",
+                  "settled",
+                  "stale",
+                  "archived"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "NodePatch",
+        "type": "object"
+      },
+      "NodeStubView": {
+        "properties": {
+          "depth": {
+            "title": "Depth",
+            "type": "integer"
+          },
+          "embedding_pending": {
+            "title": "Embedding Pending",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "map": {
+            "title": "Map",
+            "type": "string"
+          },
+          "open_growth_areas": {
+            "title": "Open Growth Areas",
+            "type": "integer"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "stub": {
+            "title": "Stub",
+            "type": "boolean"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "map",
+          "project",
+          "topic",
+          "parent",
+          "status",
+          "open_growth_areas",
+          "embedding_pending",
+          "depth",
+          "stub"
+        ],
+        "title": "NodeStubView",
+        "type": "object"
+      },
+      "NodeView": {
+        "properties": {
+          "content_rev": {
+            "title": "Content Rev",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "current_version": {
+            "title": "Current Version",
+            "type": "integer"
+          },
+          "directions": {
+            "items": {
+              "$ref": "#/components/schemas/DirectionView"
+            },
+            "title": "Directions",
+            "type": "array"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/EdgeView"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "embedding_pending": {
+            "title": "Embedding Pending",
+            "type": "boolean"
+          },
+          "growth_areas": {
+            "items": {
+              "$ref": "#/components/schemas/GrowthView"
+            },
+            "title": "Growth Areas",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/LinkView"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "map": {
+            "title": "Map",
+            "type": "string"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "updated_by": {
+            "title": "Updated By",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "map",
+          "project",
+          "parent",
+          "topic",
+          "notes",
+          "status",
+          "current_version",
+          "content_rev",
+          "embedding_pending",
+          "created_by",
+          "created_at",
+          "updated_by",
+          "updated_at",
+          "version"
+        ],
+        "title": "NodeView",
+        "type": "object"
+      },
+      "ProjectCount": {
+        "properties": {
+          "maps": {
+            "title": "Maps",
+            "type": "integer"
+          },
+          "nodes": {
+            "title": "Nodes",
+            "type": "integer"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "maps",
+          "nodes"
+        ],
+        "title": "ProjectCount",
+        "type": "object"
+      },
+      "SearchResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HitView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "pending_embedding": {
+            "title": "Pending Embedding",
+            "type": "integer"
+          },
+          "semantic": {
+            "title": "Semantic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "semantic",
+          "pending_embedding"
+        ],
+        "title": "SearchResponse",
+        "type": "object"
+      },
+      "SubgraphView": {
+        "properties": {
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/EdgeView"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/NodeStubView"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nodes",
+          "edges",
+          "truncated"
+        ],
+        "title": "SubgraphView",
+        "type": "object"
+      },
+      "VersionMetaView": {
+        "properties": {
+          "author": {
+            "title": "Author",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "author",
+          "summary",
+          "created_at"
+        ],
+        "title": "VersionMetaView",
+        "type": "object"
+      },
+      "VersionView": {
+        "properties": {
+          "author": {
+            "title": "Author",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "author",
+          "summary",
+          "created_at",
+          "topic",
+          "notes"
+        ],
+        "title": "VersionView",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "agents-mindmap",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/mindmap/api/v1/directions": {
+      "get": {
+        "operationId": "list_directions_mindmap_api_v1_directions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          },
+          {
+            "in": "query",
+            "name": "map",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^M-[1-9][0-9]{0,17}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Map"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "acknowledged",
+                    "resolved",
+                    "withdrawn"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DirectionView"
+                  },
+                  "title": "Response List Directions Mindmap Api V1 Directions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "List Directions"
+      }
+    },
+    "/mindmap/api/v1/directions/{key}": {
+      "patch": {
+        "operationId": "patch_direction_mindmap_api_v1_directions__key__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectionPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists, invalid_transition)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Patch Direction"
+      }
+    },
+    "/mindmap/api/v1/edges": {
+      "post": {
+        "operationId": "create_edge_mindmap_api_v1_edges_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EdgeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EdgeView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists, invalid_transition)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "Create Edge"
+      }
+    },
+    "/mindmap/api/v1/edges/{key}": {
+      "delete": {
+        "operationId": "delete_edge_mindmap_api_v1_edges__key__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          }
+        },
+        "summary": "Delete Edge"
+      }
+    },
+    "/mindmap/api/v1/events": {
+      "get": {
+        "description": "Events past `after` in id order (users read unscoped, spec 3.5).",
+        "operationId": "events_mindmap_api_v1_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "After",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventView"
+                  },
+                  "title": "Response Events Mindmap Api V1 Events Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Events"
+      }
+    },
+    "/mindmap/api/v1/growth-areas/{key}": {
+      "delete": {
+        "operationId": "delete_growth_area_mindmap_api_v1_growth_areas__key__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          }
+        },
+        "summary": "Delete Growth Area"
+      },
+      "patch": {
+        "operationId": "patch_growth_area_mindmap_api_v1_growth_areas__key__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrowthPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrowthView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists, invalid_transition)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Patch Growth Area"
+      }
+    },
+    "/mindmap/api/v1/knowledge/notes": {
+      "post": {
+        "operationId": "put_note_mindmap_api_v1_knowledge_notes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeNoteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists, invalid_transition)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "Put Note"
+      }
+    },
+    "/mindmap/api/v1/links": {
+      "get": {
+        "operationId": "list_links_mindmap_api_v1_links_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "pattern": "^(T|S)-[1-9][0-9]{0,17}$",
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LinkView"
+                  },
+                  "title": "Response List Links Mindmap Api V1 Links Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "List Links"
+      }
+    },
+    "/mindmap/api/v1/links/{link_id}": {
+      "delete": {
+        "operationId": "delete_link_mindmap_api_v1_links__link_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "title": "Link Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Delete Link"
+      }
+    },
+    "/mindmap/api/v1/maps": {
+      "get": {
+        "operationId": "list_maps_mindmap_api_v1_maps_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "archived"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "research",
+                    "knowledge"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapView"
+                  },
+                  "title": "Response List Maps Mindmap Api V1 Maps Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "List Maps"
+      },
+      "post": {
+        "operationId": "create_map_mindmap_api_v1_maps_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MapIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists, invalid_transition)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "Create Map"
+      }
+    },
+    "/mindmap/api/v1/maps/{key}": {
+      "delete": {
+        "operationId": "delete_map_mindmap_api_v1_maps__key__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          }
+        },
+        "summary": "Delete Map"
+      },
+      "get": {
+        "operationId": "get_map_mindmap_api_v1_maps__key__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          }
+        },
+        "summary": "Get Map"
+      },
+      "patch": {
+        "operationId": "patch_map_mindmap_api_v1_maps__key__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MapPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists, invalid_transition)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Patch Map"
+      }
+    },
+    "/mindmap/api/v1/maps/{key}/directions": {
+      "post": {
+        "operationId": "create_direction_mindmap_api_v1_maps__key__directions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Create Direction"
+      }
+    },
+    "/mindmap/api/v1/maps/{key}/graph": {
+      "get": {
+        "operationId": "map_graph_mindmap_api_v1_maps__key__graph_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "minimum": 0,
+              "title": "Depth",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubgraphView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "Map Graph"
+      }
+    },
+    "/mindmap/api/v1/maps/{key}/links": {
+      "post": {
+        "operationId": "link_map_mindmap_api_v1_maps__key__links_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists, invalid_transition)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Link Map"
+      }
+    },
+    "/mindmap/api/v1/maps/{key}/nodes": {
+      "post": {
+        "operationId": "create_node_mindmap_api_v1_maps__key__nodes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists, invalid_transition)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "Create Node"
+      }
+    },
+    "/mindmap/api/v1/nodes/{key}": {
+      "delete": {
+        "operationId": "delete_node_mindmap_api_v1_nodes__key__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Delete Node"
+      },
+      "get": {
+        "operationId": "get_node_mindmap_api_v1_nodes__key__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "Get Node"
+      },
+      "patch": {
+        "operationId": "patch_node_mindmap_api_v1_nodes__key__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists, invalid_transition)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "Patch Node"
+      }
+    },
+    "/mindmap/api/v1/nodes/{key}/growth-areas": {
+      "post": {
+        "operationId": "add_growth_area_mindmap_api_v1_nodes__key__growth_areas_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrowthIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrowthView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Add Growth Area"
+      }
+    },
+    "/mindmap/api/v1/nodes/{key}/links": {
+      "post": {
+        "operationId": "link_node_mindmap_api_v1_nodes__key__links_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "conflict (version_conflict with the row version, slug_taken, edge_exists, link_exists, invalid_transition)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Link Node"
+      }
+    },
+    "/mindmap/api/v1/nodes/{key}/traverse": {
+      "get": {
+        "operationId": "traverse_mindmap_api_v1_nodes__key__traverse_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 2,
+              "minimum": 0,
+              "title": "Depth",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kinds",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kinds"
+            }
+          },
+          {
+            "in": "query",
+            "name": "follow",
+            "required": false,
+            "schema": {
+              "default": "both",
+              "enum": [
+                "out",
+                "in",
+                "both"
+              ],
+              "title": "Follow",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tree",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Tree",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "own",
+                "all"
+              ],
+              "title": "Scope",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubgraphView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "Traverse"
+      }
+    },
+    "/mindmap/api/v1/nodes/{key}/versions": {
+      "get": {
+        "operationId": "list_versions_mindmap_api_v1_nodes__key__versions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VersionMetaView"
+                  },
+                  "title": "Response List Versions Mindmap Api V1 Nodes  Key  Versions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          }
+        },
+        "summary": "List Versions"
+      }
+    },
+    "/mindmap/api/v1/nodes/{key}/versions/{v}": {
+      "get": {
+        "operationId": "get_version_mindmap_api_v1_nodes__key__versions__v__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "v",
+            "required": true,
+            "schema": {
+              "title": "V",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "unknown key (not_found)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Get Version"
+      }
+    },
+    "/mindmap/api/v1/projects": {
+      "get": {
+        "operationId": "projects_mindmap_api_v1_projects_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectCount"
+                  },
+                  "title": "Response Projects Mindmap Api V1 Projects Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "Projects"
+      }
+    },
+    "/mindmap/api/v1/search": {
+      "get": {
+        "operationId": "search_mindmap_api_v1_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          },
+          {
+            "in": "query",
+            "name": "map",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^M-[1-9][0-9]{0,17}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Map"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "seed",
+                    "growing",
+                    "settled",
+                    "stale",
+                    "archived"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "own",
+              "enum": [
+                "own",
+                "all"
+              ],
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "default": "hybrid",
+              "enum": [
+                "hybrid",
+                "lexical",
+                "semantic"
+              ],
+              "title": "Mode",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "the orchestrator cannot validate the project (upstream_unavailable) or a read query timed out (query_timeout)"
+          }
+        },
+        "summary": "Search"
+      }
+    },
+    "/mindmap/api/v1/stream": {
+      "get": {
+        "description": "Server-sent `mindmap_changed` events (and `reset` when the cursor is too old).",
+        "operationId": "stream_mindmap_api_v1_stream_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "event": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "retry": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "source address is not allowed on the web listener (forbidden)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "invalid request (invalid_request, project_unknown, project_archived, project_required, summary_required, parent_cycle, parent_invalid, root_immovable, self_edge, task_required, grown_node_invalid, node_invalid)"
+          }
+        },
+        "summary": "Stream"
+      }
+    }
+  }
+}

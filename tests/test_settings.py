@@ -56,14 +56,16 @@ def test_defaults(monkeypatch):
 
 def test_errors_name_each_variable(monkeypatch):
     set_env(monkeypatch, MINDMAP_ALLOWED_CIDRS="nope", MINDMAP_PUBLIC_BASE_URL="not-a-url")
-    monkeypatch.delenv("MINDMAP_RELAY_TOKEN")
     with pytest.raises(SettingsError) as exc:
         load_settings()
-    assert set(exc.value.problems) == {
-        "MINDMAP_ALLOWED_CIDRS",
-        "MINDMAP_PUBLIC_BASE_URL",
-        "MINDMAP_RELAY_TOKEN",
-    }
+    assert set(exc.value.problems) == {"MINDMAP_ALLOWED_CIDRS", "MINDMAP_PUBLIC_BASE_URL"}
+
+
+def test_relay_token_is_optional_per_process(monkeypatch):
+    """Only the service listener verifies it: the web and delegate pods do not carry it."""
+    set_env(monkeypatch)
+    monkeypatch.delenv("MINDMAP_RELAY_TOKEN")
+    assert load_settings().relay_token.get_secret_value() == ""
 
 
 def test_delegate_tokens_parsed_from_csv(monkeypatch):

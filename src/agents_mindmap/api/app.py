@@ -9,6 +9,7 @@ import ipaddress
 import logging
 from collections.abc import AsyncIterator, Callable
 
+from agents_common.db import listen
 from agents_common.service_gate import EXEMPT_PATHS, ServiceTokenGate
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -17,9 +18,20 @@ from psycopg_pool import AsyncConnectionPool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from agents_mindmap.api import directions, edges, growth, knowledge, links, maps, nodes, search
+from agents_mindmap.api import (
+    directions,
+    edges,
+    growth,
+    knowledge,
+    links,
+    maps,
+    nodes,
+    search,
+    stream,
+)
 from agents_mindmap.api.actors import Actor, agent_actor, user_actor
 from agents_mindmap.api.errors import ApiError, error_response
+from agents_mindmap.api.stream import DEFAULT_POLL_SECONDS, ChangeHub, ListenFn
 from agents_mindmap.projects import ProjectLookup
 from agents_mindmap.settings import Settings
 
@@ -72,8 +84,13 @@ def _base_app(
 ) -> FastAPI:
     @contextlib.asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        yield
-        await app.state.projects.aclose()
+        try:
+            yield
+        finally:
+            hub = getattr(app.state, "hub", None)
+            if hub is not None:
+                await hub.stop()
+            await app.state.projects.aclose()
 
     app = FastAPI(title=title, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.settings = settings
@@ -131,23 +148,41 @@ def _user_app(
     pool: AsyncConnectionPool | None,
     title: str,
     add_gate: Callable[[FastAPI], None],
+    stream_poll_seconds: float,
+    listen_fn: ListenFn,
 ) -> FastAPI:
-    """The user-actor app; only the admission gate differs between web and delegate."""
+    """The user-actor app with the change feed; only the admission gate differs between web
+    and delegate."""
     app = _base_app(settings, pool, title, user_actor, agent=False)
+    if pool is not None:
+        app.state.hub = ChangeHub(
+            settings.database_url.get_secret_value(), pool, stream_poll_seconds, listen_fn
+        )
+    app.include_router(stream.build_router(), prefix=PREFIX)
     add_gate(app)
     return app
 
 
-def create_web_app(settings: Settings, pool: AsyncConnectionPool | None) -> FastAPI:
+def create_web_app(
+    settings: Settings,
+    pool: AsyncConnectionPool | None,
+    stream_poll_seconds: float = DEFAULT_POLL_SECONDS,
+    listen_fn: ListenFn = listen,
+) -> FastAPI:
     """The user-facing app: source allowlist (the oauth2-proxy sidecar on loopback), no bearer."""
 
     def gate(app: FastAPI) -> None:
         app.add_middleware(SourceAllowlist, networks=settings.api_networks())
 
-    return _user_app(settings, pool, "agents-mindmap", gate)
+    return _user_app(settings, pool, "agents-mindmap", gate, stream_poll_seconds, listen_fn)
 
 
-def create_delegate_app(settings: Settings, pool: AsyncConnectionPool | None) -> FastAPI:
+def create_delegate_app(
+    settings: Settings,
+    pool: AsyncConnectionPool | None,
+    stream_poll_seconds: float = DEFAULT_POLL_SECONDS,
+    listen_fn: ListenFn = listen,
+) -> FastAPI:
     """The cluster-only delegate app: the web app's routes acting as a user, behind a bearer
     gate on the delegate token list (never the relay token)."""
     tokens = [t.get_secret_value() for t in settings.delegate_tokens]
@@ -157,12 +192,17 @@ def create_delegate_app(settings: Settings, pool: AsyncConnectionPool | None) ->
     def gate(app: FastAPI) -> None:
         app.add_middleware(ServiceTokenGate, tokens=tokens)
 
-    return _user_app(settings, pool, "agents-mindmap-delegate", gate)
+    return _user_app(
+        settings, pool, "agents-mindmap-delegate", gate, stream_poll_seconds, listen_fn
+    )
 
 
 def create_service_app(settings: Settings, pool: AsyncConnectionPool | None) -> FastAPI:
     """The relay-facing app: bearer gate on the relay token; agent identity and project scope
     from the relay's forwarded headers. Agents archive, never hard delete."""
+    relay = settings.relay_token.get_secret_value()
+    if not relay:
+        raise ValueError("MINDMAP_RELAY_TOKEN: required to serve the service listener")
     app = _base_app(settings, pool, "agents-mindmap-service", agent_actor, agent=True)
-    app.add_middleware(ServiceTokenGate, tokens=[settings.relay_token.get_secret_value()])
+    app.add_middleware(ServiceTokenGate, tokens=[relay])
     return app

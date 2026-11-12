@@ -5,7 +5,7 @@ import socket
 
 import httpx
 import pytest
-from conftest import DELEGATE_TOKEN, RELAY_TOKEN, make_settings
+from conftest import RELAY_TOKEN, make_settings
 
 from agents_mindmap import runtime
 
@@ -48,27 +48,23 @@ async def _get(port: int, path: str, token: str | None = None) -> httpx.Response
     pytest.fail(f"listener on {port} did not come up")
 
 
-@pytest.mark.parametrize("delegate", [True, False])
-async def test_serve_runs_every_listener_then_stops(db_url, delegate):
+@pytest.mark.parametrize("listener", ["web", "service", "delegate"])
+async def test_serve_runs_only_its_listener_then_stops(db_url, listener):
     ports = {"http_port": free_port(), "delegate_port": free_port(), "service_port": free_port()}
-    settings = make_settings(
-        db_url,
-        http_host="127.0.0.1",
-        delegate_tokens=[DELEGATE_TOKEN] if delegate else [],
-        **ports,
-    )
+    settings = make_settings(db_url, http_host="127.0.0.1", **ports)
     stop = asyncio.Event()
-    task = asyncio.create_task(runtime.serve(settings, stop))
+    task = asyncio.create_task(runtime.serve(settings, stop, listener))
+    own = {"web": "http_port", "service": "service_port", "delegate": "delegate_port"}[listener]
     try:
-        assert (await _get(ports["http_port"], "/readyz")).status_code == 200
-        service = await _get(ports["service_port"], "/mindmap/api/v1/x", RELAY_TOKEN)
-        assert service.status_code == 404
-        if delegate:
-            assert (await _get(ports["delegate_port"], "/readyz")).status_code == 200
-        else:
-            with pytest.raises(httpx.ConnectError):
-                async with httpx.AsyncClient() as client:
-                    await client.get(f"http://127.0.0.1:{ports['delegate_port']}/healthz")
+        assert (await _get(ports[own], "/readyz")).status_code == 200
+        if listener == "service":
+            service = await _get(ports[own], "/mindmap/api/v1/x", RELAY_TOKEN)
+            assert service.status_code == 404
+        for name, port in ports.items():
+            if name != own:
+                with pytest.raises(httpx.ConnectError):
+                    async with httpx.AsyncClient() as client:
+                        await client.get(f"http://127.0.0.1:{port}/healthz")
     finally:
         stop.set()
         await asyncio.wait_for(task, 10)
