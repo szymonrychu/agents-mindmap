@@ -50,7 +50,10 @@ _COMMON = {
         " summary_required, parent_cycle, parent_invalid, root_immovable, self_edge,"
         " task_required, grown_node_invalid, node_invalid)"
     ),
-    503: "the orchestrator cannot validate the project (upstream_unavailable)",
+    503: (
+        "the orchestrator cannot validate the project (upstream_unavailable) or a read query"
+        " timed out (query_timeout)"
+    ),
 }
 WEB_ERRORS = {
     403: "source address is not allowed on the web listener (forbidden)",
@@ -93,6 +96,9 @@ USER_ROUTE_ERRORS: dict[tuple[str, str], tuple[int, ...]] = {
     ("post", "/maps/{key}/directions"): (404, 422),
     ("patch", "/directions/{key}"): (404, 409, 422),
     ("post", "/knowledge/notes"): (404, 409, 422, 503),
+    ("get", "/nodes/{key}/traverse"): (404, 422, 503),
+    ("get", "/maps/{key}/graph"): (404, 503),
+    ("get", "/search"): (422, 503),
 }
 HARD_DELETES = {
     ("delete", "/maps/{key}"),

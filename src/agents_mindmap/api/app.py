@@ -17,7 +17,7 @@ from psycopg_pool import AsyncConnectionPool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from agents_mindmap.api import directions, edges, growth, knowledge, links, maps, nodes
+from agents_mindmap.api import directions, edges, growth, knowledge, links, maps, nodes, search
 from agents_mindmap.api.actors import Actor, agent_actor, user_actor
 from agents_mindmap.api.errors import ApiError, error_response
 from agents_mindmap.projects import ProjectLookup
@@ -121,7 +121,7 @@ def _base_app(
 
     for module in (maps, nodes, growth):
         app.include_router(module.build_router(agent=agent), prefix=PREFIX)
-    for module in (edges, links, directions, knowledge):
+    for module in (edges, links, directions, knowledge, search):
         app.include_router(module.build_router(), prefix=PREFIX)
     return app
 
