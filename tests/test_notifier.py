@@ -118,6 +118,27 @@ async def test_unknown_task_dead(web_client, pool, db_url):
     assert notice_rows(db_url) == [("T-9", "dead", 0)]
 
 
+@pytest.mark.parametrize("code", [400, 401, 403, 422])
+async def test_permanent_client_error_dead(web_client, pool, db_url, code):
+    m = await linked(web_client, "T-9")
+    await web_client.post(f"/maps/{m['key']}/nodes", json={"topic": "n"})
+    due_now(db_url)
+    tb = FakeTaskboard({"T-9": code})
+    assert await notifier.send_next_task(pool, tb.client(), 30.0, 60.0) is True
+    assert await notifier.send_next_task(pool, tb.client(), 30.0, 60.0) is None
+    assert len(tb.calls) == 1
+    assert notice_rows(db_url) == [("T-9", "dead", 0)]
+
+
+async def test_429_retries(web_client, pool, db_url):
+    m = await linked(web_client, "T-1")
+    await web_client.post(f"/maps/{m['key']}/nodes", json={"topic": "n"})
+    due_now(db_url)
+    tb = FakeTaskboard({"T-1": 429})
+    assert await notifier.send_next_task(pool, tb.client(), 30.0, 60.0) is False
+    assert notice_rows(db_url) == [("T-1", "pending", 1)]
+
+
 async def test_5xx_backoff_retry(web_client, pool, db_url):
     m = await linked(web_client, "T-1")
     await web_client.post(f"/maps/{m['key']}/nodes", json={"topic": "n"})

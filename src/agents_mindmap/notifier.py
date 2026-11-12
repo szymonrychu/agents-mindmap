@@ -135,8 +135,8 @@ async def send_next_task(
     backoff_base: float,
     backoff_max: float,
 ) -> bool | None:
-    """Send one due task notice. None: nothing due; True: ended (sent, or dead on a 404);
-    False: the call failed and the row waits on its own backoff."""
+    """Send one due task notice. None: nothing due; True: ended (sent, or dead on a 404
+    or other permanent 4xx); False: the call failed and the row waits on its own backoff."""
     async with pool.connection() as conn:
         found = await outbox.claim_due(conn, 1)
     if not found:
@@ -151,8 +151,10 @@ async def send_next_task(
     except httpx.HTTPError as exc:
         log.warning("task notice %s: call failed, will retry: %s", notice.id, type(exc).__name__)
         status = 599
-    if status == 404:
-        log.info("task notice %s: task unknown to the taskboard; dead", notice.id)
+    if status == 404 or (400 <= status < 500 and status != 429):
+        # 404: task unknown; other 4xx (not 429): the request itself is refused, a retry cannot
+        # help. Only the status code is logged, never the body or the token.
+        log.warning("task notice %s: taskboard answered HTTP %s; dead", notice.id, status)
         async with pool.connection() as conn:
             await outbox.mark_dead(conn, notice.id)
         return True
