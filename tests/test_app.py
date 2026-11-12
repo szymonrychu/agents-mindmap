@@ -79,10 +79,10 @@ async def test_bearer_gates_take_only_their_own_tokens(settings, listener, wrong
 
 
 def test_error_body_shape():
-    response = error_response(409, "version_conflict", "the node changed", {"current_version": 3})
+    response = error_response(409, "version_conflict", "the node changed", {"version": 3})
     assert response.status_code == 409
     assert json.loads(response.body) == {
-        "error": {"code": "version_conflict", "message": "the node changed", "current_version": 3}
+        "error": {"code": "version_conflict", "message": "the node changed", "version": 3}
     }
 
 

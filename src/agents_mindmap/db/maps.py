@@ -154,7 +154,7 @@ async def update_map(
     actor_session: str | None = None,
 ) -> MapRow:
     """Guarded update of title, description or status; 404 unknown, 409 `version_conflict`
-    with `current_version` when the map changed since `version` was read."""
+    with the row `version` when the map changed since `version` was read."""
     unknown = set(fields) - set(UPDATABLE)
     if unknown:
         raise ValueError(f"not updatable: {sorted(unknown)}")
@@ -175,7 +175,7 @@ async def update_map(
             409,
             "version_conflict",
             "the map changed since it was read",
-            {"current_version": current[0]},
+            {"version": current[0]},
         )
     await append_event(
         conn,

@@ -3,6 +3,7 @@ summary."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -48,17 +49,24 @@ async def insert_version(
     )
 
 
-async def _require_node(conn: psycopg.AsyncConnection, node_key: str) -> int:
+async def _require_node(
+    conn: psycopg.AsyncConnection, node_key: str, readable: Sequence[str]
+) -> int:
     node_id = parse_key("N", node_key)
-    cur = await conn.execute("SELECT 1 FROM nodes WHERE id = %s", (node_id,))
+    cur = await conn.execute(
+        "SELECT 1 FROM nodes WHERE id = %s AND project = ANY(%s)", (node_id, list(readable))
+    )
     if await cur.fetchone() is None:
         raise ApiError(404, "not_found", "not found")
     return node_id
 
 
-async def list_versions(conn: psycopg.AsyncConnection, node_key: str) -> list[VersionMeta]:
-    """Versions of the node, oldest first, without the texts; 404 for an unknown node."""
-    node_id = await _require_node(conn, node_key)
+async def list_versions(
+    conn: psycopg.AsyncConnection, node_key: str, *, readable: Sequence[str]
+) -> list[VersionMeta]:
+    """Versions of the node, oldest first, without the texts; 404 for an unknown node or one
+    outside the readable (active) projects."""
+    node_id = await _require_node(conn, node_key, readable)
     async with conn.cursor(row_factory=class_row(VersionMeta)) as cur:
         await cur.execute(
             "SELECT version, author, summary, created_at FROM node_versions"
@@ -68,8 +76,10 @@ async def list_versions(conn: psycopg.AsyncConnection, node_key: str) -> list[Ve
         return await cur.fetchall()
 
 
-async def get_version(conn: psycopg.AsyncConnection, node_key: str, v: int) -> VersionRow:
-    node_id = await _require_node(conn, node_key)
+async def get_version(
+    conn: psycopg.AsyncConnection, node_key: str, v: int, *, readable: Sequence[str]
+) -> VersionRow:
+    node_id = await _require_node(conn, node_key, readable)
     async with conn.cursor(row_factory=class_row(VersionRow)) as cur:
         await cur.execute(
             "SELECT version, topic, notes, author, summary, created_at FROM node_versions"

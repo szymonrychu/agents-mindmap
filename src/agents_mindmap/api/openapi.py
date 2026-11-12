@@ -41,7 +41,7 @@ ERROR_SCHEMAS: dict[str, Any] = {
 
 _COMMON = {
     404: "unknown key (not_found)",
-    409: "conflict (version_conflict with current_version, slug_taken)",
+    409: "conflict (version_conflict with the row version, slug_taken)",
     422: (
         "invalid request (invalid_request, project_unknown, project_archived, summary_required,"
         " parent_cycle, parent_invalid, root_immovable)"

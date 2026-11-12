@@ -163,7 +163,7 @@ async def update_node(
 ) -> NodeRow:
     """Guarded update. A changed topic or notes needs `summary`, stores the next version row and
     bumps `content_rev`; a changed parent is checked for cycles. 404 unknown, 409
-    `version_conflict` (with `current_version`), 422 `summary_required`, `parent_cycle`,
+    `version_conflict` (with the row `version`), 422 `summary_required`, `parent_cycle`,
     `parent_invalid`, `root_immovable`."""
     node_id = parse_key("N", key)
     node = await _select(conn, node_id, lock=True)
@@ -174,7 +174,7 @@ async def update_node(
             409,
             "version_conflict",
             "the node changed since it was read",
-            {"current_version": node.version},
+            {"version": node.version},
         )
     changes: dict[str, Any] = {}
     for name, new in (("topic", topic), ("notes", notes), ("status", status)):

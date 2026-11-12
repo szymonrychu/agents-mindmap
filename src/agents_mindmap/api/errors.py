@@ -1,7 +1,7 @@
 """The `{"error": {"code", "message", ...extra}}` error shape shared by every listener.
 
 `message` is a fixed text chosen by the code (plus keys and ids), never caller input or an
-upstream body; `extra` carries machine-readable fields such as `current_version`."""
+upstream body; `extra` carries machine-readable fields such as `version`."""
 
 from typing import Any
 

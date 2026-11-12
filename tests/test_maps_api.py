@@ -87,7 +87,7 @@ async def test_patch_map_guarded(web_client):
     assert patched.json()["version"] == 2
     stale = await web_client.patch(f"/maps/{key}", json={"version": 1, "title": "x"})
     assert stale.status_code == 409
-    assert stale.json()["error"]["current_version"] == 2
+    assert stale.json()["error"]["version"] == 2
     assert (await web_client.patch("/maps/M-999", json={"version": 1})).status_code == 404
 
 
@@ -134,3 +134,55 @@ async def test_delegate_serves_same_routes(db_url, pool):
         assert created.json()["created_by"] == "user:unknown"
         assert (await client.get("/maps")).status_code == 200
     assert ORCH_TOKEN not in created.text
+
+
+def _insert_inactive(db_url):
+    """A map with a root node and a second version in the archived project `old`."""
+    import psycopg
+
+    with psycopg.connect(db_url) as conn:
+        map_id = conn.execute(
+            "INSERT INTO maps (project, slug, kind, title, description, status, created_by)"
+            " VALUES ('old', 's', 'knowledge', 't', '', 'active', 'user:x') RETURNING id"
+        ).fetchone()[0]
+        node_id = conn.execute(
+            "INSERT INTO nodes (map_id, project, topic, status, created_by, updated_by)"
+            " VALUES (%s, 'old', 'r', 'seed', 'user:x', 'user:x') RETURNING id",
+            (map_id,),
+        ).fetchone()[0]
+        conn.execute(
+            "INSERT INTO node_versions (node_id, version, topic, notes, author, summary)"
+            " VALUES (%s, 1, 'r', '', 'user:x', 'created')",
+            (node_id,),
+        )
+        conn.commit()
+    return f"M-{map_id}", f"N-{node_id}"
+
+
+async def test_reads_by_key_hide_inactive_projects(web_client, db_url):
+    map_key, node_key = _insert_inactive(db_url)
+    for path in (
+        f"/maps/{map_key}",
+        f"/nodes/{node_key}",
+        f"/nodes/{node_key}/versions",
+        f"/nodes/{node_key}/versions/1",
+    ):
+        response = await web_client.get(path)
+        assert response.status_code == 404, path
+        assert response.json() == {"error": {"code": "not_found", "message": "not found"}}
+
+
+async def test_user_identity_header_order_and_fallback(web_client):
+    async def author(headers, slug):
+        response = await web_client.post(
+            "/maps", json={**MAP, "slug": slug}, headers={"X-Forwarded-Email": "", **headers}
+        )
+        assert response.status_code == 201, response.text
+        return response.json()["created_by"]
+
+    both = {"X-Forwarded-Email": "a@x.test", "X-Forwarded-User": "bob"}
+    assert await author(both, "a") == "user:a@x.test"
+    assert await author({"X-Forwarded-User": "bob"}, "b") == "user:bob"
+    assert await author({}, "c") == "user:unknown"
+    assert await author({"X-Forwarded-User": "bad\x01name"}, "d") == "user:unknown"
+    assert await author({"X-Forwarded-User": "x" * 201}, "e") == "user:unknown"

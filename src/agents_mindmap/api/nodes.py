@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request, Response
 
-from agents_mindmap.api.common import pool_of, user_author
+from agents_mindmap.api.common import lookup_of, pool_of, user_author
 from agents_mindmap.api.errors import ApiError
 from agents_mindmap.api.schemas import (
     NodeIn,
@@ -38,9 +38,10 @@ def build_router() -> APIRouter:
 
     @router.get("/nodes/{key}", response_model=NodeView)
     async def get_node(request: Request, key: str) -> NodeView:
+        readable = await lookup_of(request).active_slugs()
         async with pool_of(request).connection() as conn:
             row = await nodes_db.get_node(conn, key)
-        if row is None:
+        if row is None or row.project not in readable:
             raise ApiError(404, "not_found", "not found")
         return NodeView.of(row)
 
@@ -69,14 +70,16 @@ def build_router() -> APIRouter:
 
     @router.get("/nodes/{key}/versions", response_model=list[VersionMetaView])
     async def list_versions(request: Request, key: str) -> list[VersionMetaView]:
+        readable = await lookup_of(request).active_slugs()
         async with pool_of(request).connection() as conn:
-            rows = await versions_db.list_versions(conn, key)
+            rows = await versions_db.list_versions(conn, key, readable=readable)
         return [VersionMetaView.of(r) for r in rows]
 
     @router.get("/nodes/{key}/versions/{v}", response_model=VersionView)
     async def get_version(request: Request, key: str, v: int) -> VersionView:
+        readable = await lookup_of(request).active_slugs()
         async with pool_of(request).connection() as conn:
-            row = await versions_db.get_version(conn, key, v)
+            row = await versions_db.get_version(conn, key, v, readable=readable)
         return VersionView.of(row)
 
     return router

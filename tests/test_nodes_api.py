@@ -90,7 +90,7 @@ async def test_concurrent_update_one_wins(web_client, db_url):
     assert sorted([first.status_code, second.status_code]) == [200, 409]
     loser = first if first.status_code == 409 else second
     assert loser.json()["error"]["code"] == "version_conflict"
-    assert loser.json()["error"]["current_version"] == 2
+    assert loser.json()["error"]["version"] == 2
     with psycopg.connect(db_url) as conn:
         versions = conn.execute("SELECT version FROM node_versions ORDER BY version").fetchall()
     assert versions == [(1,), (2,)]
