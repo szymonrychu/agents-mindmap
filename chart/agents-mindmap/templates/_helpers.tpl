@@ -116,3 +116,22 @@ env:
   {{- include "agents-mindmap.secretEnv" (dict "env" "MINDMAP_TASKBOARD_TOKEN" "secret" (required "agents-mindmap: taskboard.tokenSecret.name is required when taskboard.url is set" .Values.taskboard.tokenSecret.name) "key" .Values.taskboard.tokenSecret.key) | nindent 2 }}
   {{- end }}
 {{- end }}
+
+{{/* The image tag: a semver X.Y.Z or the render fails (never a sha, never latest). */}}
+{{- define "agents-mindmap.imageTag" -}}
+{{- $tag := .Values.image.tag | toString -}}
+{{- if not (regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+$" $tag) -}}
+{{- fail "agents-mindmap: image.tag must be a semver X.Y.Z (deploy only released images)" -}}
+{{- end -}}
+{{- $tag -}}
+{{- end }}
+
+{{/* Pod annotations of the oauth2-proxy admission webhook; fails when a field is missing. */}}
+{{- define "agents-mindmap.oauth2Annotations" -}}
+{{- if .Values.oauth2Proxy.enabled -}}
+oauth2-proxy-admission/enable: "true"
+oauth2-proxy-admission/redeem-url: {{ required "agents-mindmap: oauth2Proxy.redeemUrl is required" .Values.oauth2Proxy.redeemUrl | quote }}
+oauth2-proxy-admission/secret-name: {{ required "agents-mindmap: oauth2Proxy.secretName is required" .Values.oauth2Proxy.secretName | quote }}
+oauth2-proxy-admission/secret-namespace: {{ required "agents-mindmap: oauth2Proxy.secretNamespace is required" .Values.oauth2Proxy.secretNamespace | quote }}
+{{- end -}}
+{{- end }}

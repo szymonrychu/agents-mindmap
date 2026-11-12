@@ -1,5 +1,6 @@
 """Chart skeleton render: one api Deployment, listener Services, external Secret refs only."""
 
+import re
 import shutil
 import subprocess
 import tempfile
@@ -154,3 +155,172 @@ def test_ingress_off_by_default_and_routes_only_web_under_mindmap():
         for p in rule["http"]["paths"]
     ]
     assert backends == [("/mindmap", "agents-mindmap-web", "Prefix")]
+
+
+SHA_TAGS = ["", "abc1234", "latest", "1.2", "v1.2.3", "1.2.3-rc1"]
+
+
+@pytest.mark.parametrize("tag", SHA_TAGS)
+def test_chart_image_semver(tag: str):
+    proc = _run(_merge(BASE, {"image": {"tag": tag}}))
+    assert proc.returncode != 0
+    assert "image.tag must be a semver" in proc.stderr
+    assert "1.2.3" not in proc.stdout
+
+
+def test_chart_image_semver_accepts_x_y_z():
+    docs = render({"image": {"tag": "10.20.30"}})
+    assert api_container(docs)["image"].endswith("/agents-mindmap:10.20.30")
+
+
+OAUTH = {
+    "oauth2Proxy": {
+        "enabled": True,
+        "redeemUrl": "http://keycloak.example/token",
+        "secretName": "mm-proxy",
+        "secretNamespace": "agents",
+    }
+}
+
+
+def pod_annotations(docs: list[dict]) -> dict:
+    (dep,) = of_kind(docs, "Deployment")
+    return dep["spec"]["template"]["metadata"]["annotations"]
+
+
+def test_chart_renders_listeners_and_sidecar():
+    docs = render({**OAUTH, "delegate": {"tokensSecret": {"name": "mm-delegate"}}})
+    (dep,) = of_kind(docs, "Deployment")
+    anno = pod_annotations(docs)
+    assert anno["oauth2-proxy-admission/enable"] == "true"
+    assert anno["oauth2-proxy-admission/redeem-url"] == "http://keycloak.example/token"
+    assert anno["oauth2-proxy-admission/secret-name"] == "mm-proxy"
+    assert anno["oauth2-proxy-admission/secret-namespace"] == "agents"
+    container = dep["spec"]["template"]["spec"]["containers"][0]
+    # the injector reads the first container and its first port: that is the web listener
+    assert container["ports"][0] == {"name": "http", "containerPort": 8080, "protocol": "TCP"}
+    assert [p["name"] for p in container["ports"]] == ["http", "service", "delegate"]
+    # the sidecar takes the name `http`: probes address the port by number
+    assert container["livenessProbe"]["httpGet"]["port"] == 8080
+    assert container["readinessProbe"]["httpGet"]["port"] == 8080
+    svc = {s["metadata"]["name"]: s["spec"]["ports"][0] for s in of_kind(docs, "Service")}
+    assert svc["agents-mindmap-web"]["targetPort"] == "http"
+    assert svc["agents-mindmap-service"]["targetPort"] == "service"
+    assert svc["agents-mindmap-delegate"]["targetPort"] == "delegate"
+
+
+def test_sidecar_annotations_off_by_default_and_complete_when_on():
+    assert not any(k.startswith("oauth2-proxy-admission/") for k in pod_annotations(render()))
+    for field in ("redeemUrl", "secretName", "secretNamespace"):
+        bad = {"oauth2Proxy": {**OAUTH["oauth2Proxy"], field: ""}}
+        proc = _run(_merge(BASE, bad))
+        assert proc.returncode != 0
+        assert f"oauth2Proxy.{field} is required" in proc.stderr
+
+
+LITERAL = re.compile(r"(?i)(token|secret|password)[\w-]*\s*:\s*\S{12,}")
+
+
+def test_chart_no_literal_secrets():
+    """Rendered with every secret source set: values appear only as secretKeyRef, and the chart
+    never renders a Secret nor a token-like literal."""
+    docs = render(
+        {
+            **OAUTH,
+            "delegate": {"tokensSecret": {"name": "mm-delegate"}},
+            "taskboard": {"url": "http://tb:8003", "tokenSecret": {"name": "mm-tb"}},
+            "embedder": {"enabled": True, "url": "http://emb"},
+            "notifier": {"enabled": True},
+        }
+    )
+    assert not of_kind(docs, "Secret")
+    for dep in of_kind(docs, "Deployment"):
+        spec = dep["spec"]["template"]["spec"]
+        for container in (*spec["containers"], *spec.get("initContainers", [])):
+            for env in container.get("env", []):
+                assert set(env) == {"name", "valueFrom"}, env["name"]
+                assert set(env["valueFrom"]) == {"secretKeyRef"}
+    for cm in of_kind(docs, "ConfigMap"):
+        for key, value in cm["data"].items():
+            assert not re.search(r"TOKEN|PASSWORD|SECRET|DATABASE_URL", key), key
+            assert "://" not in value or "@" not in value, key
+    rendered = "\n".join(
+        line for line in yaml.safe_dump_all(docs).splitlines() if "secretKeyRef" not in line
+    )
+    assert not LITERAL.search(
+        "\n".join(
+            line
+            for line in rendered.splitlines()
+            if not line.strip().startswith(("name:", "key:", "oauth2-proxy-admission/secret"))
+        )
+    )
+
+
+def test_chart_delegate_optional():
+    docs = render()
+    container = api_container(docs)
+    assert "delegate" not in [p["name"] for p in container["ports"]]
+    assert 8081 not in [p["containerPort"] for p in container["ports"]]
+    assert "agents-mindmap-delegate" not in [
+        s["metadata"]["name"] for s in of_kind(docs, "Service")
+    ]
+    assert "MINDMAP_DELEGATE_TOKENS" not in env_of(container)
+
+
+def workers(docs: list[dict]) -> dict[str, dict]:
+    return {
+        d["metadata"]["labels"]["app.kubernetes.io/component"]: d
+        for d in of_kind(docs, "Deployment")
+        if d["metadata"]["labels"]["app.kubernetes.io/component"] != "api"
+    }
+
+
+def test_workers_off_by_default():
+    assert workers(render()) == {}
+
+
+def test_notifier_and_embedder_deployments_behind_flags():
+    docs = render(
+        {
+            "taskboard": {"url": "http://tb:8003", "tokenSecret": {"name": "mm-tb"}},
+            "embedder": {"enabled": True, "url": "http://emb"},
+            "notifier": {"enabled": True},
+        }
+    )
+    found = workers(docs)
+    assert set(found) == {"notifier", "embedder"}
+    for name, dep in found.items():
+        spec = dep["spec"]
+        assert spec["replicas"] == 1 and spec["strategy"] == {"type": "Recreate"}
+        pod = spec["template"]["spec"]
+        assert pod["automountServiceAccountToken"] is False
+        (container,) = pod["containers"]
+        assert container["command"] == ["mindmap"] and container["args"] == [name]
+        assert "ports" not in container
+        assert "MINDMAP_DATABASE_URL" in env_of(container)
+        assert not any(
+            k.startswith("oauth2-proxy-admission/")
+            for k in spec["template"]["metadata"]["annotations"]
+        )
+    only = workers(
+        render(
+            {
+                "notifier": {"enabled": True},
+                "taskboard": {"url": "http://tb", "tokenSecret": {"name": "t"}},
+            }
+        )
+    )
+    assert set(only) == {"notifier"}
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"notifier": {"enabled": True}}, "notifier.enabled needs taskboard.url"),
+        ({"embedder": {"enabled": True}}, "embedder.enabled needs embedder.url"),
+    ],
+)
+def test_worker_flags_need_their_settings(overrides: dict, message: str):
+    proc = _run(_merge(BASE, overrides))
+    assert proc.returncode != 0
+    assert message in proc.stderr

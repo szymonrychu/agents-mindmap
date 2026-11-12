@@ -99,18 +99,22 @@ USER_ROUTE_ERRORS: dict[tuple[str, str], tuple[int, ...]] = {
     ("get", "/nodes/{key}/traverse"): (404, 422, 503),
     ("get", "/maps/{key}/graph"): (404, 503),
     ("get", "/search"): (422, 503),
+    ("get", "/events"): (422,),
+    ("get", "/stream"): (422,),
 }
-HARD_DELETES = {
+# Agents archive instead of deleting and have no change feed (spec 3.9: no hard delete, no SSE).
+USER_ONLY = {
     ("delete", "/maps/{key}"),
     ("delete", "/nodes/{key}"),
     ("delete", "/growth-areas/{key}"),
+    ("get", "/events"),
+    ("get", "/stream"),
 }
-# Agents archive instead of deleting; every agent route can fail on scope (403) and on the
-# orchestrator's active-project list (503).
+# Every agent route can fail on scope (403) and on the orchestrator's active-project list (503).
 SERVICE_ROUTE_ERRORS: dict[tuple[str, str], tuple[int, ...]] = {
     route: tuple(sorted({*statuses, 403, 503}))
     for route, statuses in USER_ROUTE_ERRORS.items()
-    if route not in HARD_DELETES
+    if route not in USER_ONLY
 }
 ROUTE_ERRORS: dict[bool, dict[tuple[str, str], tuple[int, ...]]] = {
     False: USER_ROUTE_ERRORS,

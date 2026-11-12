@@ -1,4 +1,4 @@
-{{- $tag := default .Chart.AppVersion .Values.image.tag }}
+{{- $tag := include "agents-mindmap.imageTag" . }}
 {{- $image := printf "%s:%s" .Values.image.repository $tag }}
 {{- $settingsSum := include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
 {{- $labels := dict "context" . "component" "api" }}
@@ -18,6 +18,9 @@ spec:
     metadata:
       annotations:
         checksum/settings: {{ $settingsSum }}
+        {{- with (include "agents-mindmap.oauth2Annotations" .) }}
+        {{- . | nindent 8 }}
+        {{- end }}
         {{- with .Values.api.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -76,11 +79,11 @@ spec:
           livenessProbe:
             httpGet:
               path: /healthz
-              port: http
+              port: {{ .Values.ports.web }}
           readinessProbe:
             httpGet:
               path: /readyz
-              port: http
+              port: {{ .Values.ports.web }}
           {{- with .Values.api.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

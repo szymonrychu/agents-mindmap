@@ -1,6 +1,6 @@
 image:
   repository: harbor.szymonrichert.pl/containers/agents-mindmap
-  # Defaults to the chart appVersion (the short sha CI sets when it packages the chart).
+  # Required: a semver X.Y.Z (deploy only released images; the chart appVersion is a sha).
   tag: ""
   pullPolicy: IfNotPresent
 
@@ -48,6 +48,29 @@ taskboard:
 # Optional: the OpenAI-shaped embeddings endpoint; empty turns semantic search off.
 embedder:
   url: ""
+  # The embedder process (singleton). Off by default; agents-helmfile enables it together with
+  # the embeddings server. Needs embedder.url.
+  enabled: false
+  resources:
+    requests: {cpu: 25m, memory: 128Mi}
+    limits: {memory: 256Mi}
+
+# The notifier process (singleton): drains the task-change and direction outboxes to the
+# taskboard. Off by default; agents-helmfile enables it. Needs taskboard.url.
+notifier:
+  enabled: false
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {memory: 128Mi}
+
+# SSO for the web listener: the cluster's oauth2-proxy admission webhook injects the sidecar
+# from these pod annotations (it reads the first container and its first port, the web
+# listener). The service and delegate listeners are bearer-gated and never reached through it.
+oauth2Proxy:
+  enabled: false
+  redeemUrl: ""
+  secretName: ""
+  secretNamespace: ""
 
 # Source CIDRs allowed on the web listener (the oauth2-proxy sidecar reaches it from loopback).
 allowedCidrs:

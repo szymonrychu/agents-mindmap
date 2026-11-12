@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 
@@ -74,3 +75,22 @@ def test_migrate_applies_and_reports(monkeypatch, empty_db_url, capsys):
     assert main(["migrate"]) == 0
     assert main(["migrate"]) == 0
     assert capsys.readouterr().err == ""
+
+
+def registered() -> list[str]:
+    parser = build_parser()
+    (sub,) = [a for a in parser._actions if a.dest == "command"]
+    return list(sub.choices)
+
+
+def test_cli_no_unimplemented_commands(capsys):
+    names = registered()
+    assert set(names) == set(IMPLEMENTED)
+    for name in names:
+        with pytest.raises(SystemExit) as exc:
+            main([name, "--help"])
+        assert exc.value.code == 0
+        assert capsys.readouterr().out.startswith(f"usage: mindmap {name}")
+    readme = (Path(__file__).resolve().parent.parent / "README.md").read_text()
+    for name in LATER:
+        assert f"`mindmap {name}`" not in readme
