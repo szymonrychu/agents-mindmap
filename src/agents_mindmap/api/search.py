@@ -116,9 +116,10 @@ def build_router() -> APIRouter:
         limit: Annotated[int, Query(ge=1)] = 20,
     ) -> SearchResponse:
         # no embedder yet: every mode answers with the lexical signals and `semantic: false`
-        projects = await scoped(actor, lookup_of(request), scope)
+        # a user searches unscoped (spec 3.5, archived projects included); agents the active ones
+        projects = None if actor.kind == "user" else await scoped(actor, lookup_of(request), scope)
         if project is not None:
-            projects = [p for p in projects if p == project]
+            projects = [project] if projects is None else [p for p in projects if p == project]
         text = q.replace("\x00", " ").strip()
         async with pool_of(request).connection() as conn:
             hits = (
@@ -130,7 +131,7 @@ def build_router() -> APIRouter:
                     status=status,
                     limit=min(limit, search_db.MAX_LIMIT),
                 )
-                if text and projects
+                if text and projects != []
                 else []
             )
             pending = await search_db.pending_embedding(conn, projects)

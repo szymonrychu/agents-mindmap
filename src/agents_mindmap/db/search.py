@@ -25,7 +25,7 @@ HEADLINE = "StartSel=[[, StopSel=]], MaxWords=30, MinWords=10, MaxFragments=1, H
 Signal = Literal["fts", "trgm", "semantic"]
 
 _FILTER = """
-  AND {alias}.project = ANY(%(projects)s)
+  AND (%(projects)s::text[] IS NULL OR {alias}.project = ANY(%(projects)s))
   AND (%(map)s::bigint IS NULL OR {alias}.map_id = %(map)s)
   AND (%(status)s::text IS NULL OR {alias}.status = %(status)s)
 """
@@ -58,7 +58,14 @@ FROM nodes n WHERE n.topic %% %(q)s {_FILTER.format(alias="n")}
 ORDER BY sim DESC, n.id LIMIT {CANDIDATES}
 """
 
-PENDING_SQL = "SELECT count(*) FROM nodes WHERE project = ANY(%s) AND embedded_rev < content_rev"
+PENDING_SQL = (
+    "SELECT count(*) FROM nodes WHERE (%(projects)s::text[] IS NULL OR project = ANY(%(projects)s))"
+    " AND embedded_rev < content_rev"
+)
+
+
+def _as_list(projects: Sequence[str] | None) -> list[str] | None:
+    return None if projects is None else list(projects)
 
 
 @dataclass(frozen=True)
@@ -72,25 +79,27 @@ class Hit:
     score: float
 
 
-async def pending_embedding(conn: psycopg.AsyncConnection, projects: Sequence[str]) -> int:
-    """Readable nodes whose embedding lags their content."""
-    cur = await conn.execute(PENDING_SQL, (list(projects),))
-    return (await cur.fetchone())[0]
+async def pending_embedding(conn: psycopg.AsyncConnection, projects: Sequence[str] | None) -> int:
+    """Readable nodes whose embedding lags their content (`projects` None: unscoped)."""
+    async with guard.read_guard(conn):
+        cur = await conn.execute(PENDING_SQL, {"projects": _as_list(projects)})
+        return (await cur.fetchone())[0]
 
 
 async def lexical_search(
     conn: psycopg.AsyncConnection,
     q: str,
     *,
-    projects: Sequence[str],
+    projects: Sequence[str] | None,
     map_key: str | None = None,
     status: str | None = None,
     limit: int = 20,
 ) -> list[Hit]:
-    """Hits for `q` in `projects`, best first, at most `limit` (capped at MAX_LIMIT)."""
+    """Hits for `q` in `projects` (None: unscoped, the user), best first, at most `limit`
+    (capped at MAX_LIMIT)."""
     params = {
         "q": q,
-        "projects": list(projects),
+        "projects": _as_list(projects),
         "map": None if map_key is None else parse_key("M", map_key),
         "status": status,
     }

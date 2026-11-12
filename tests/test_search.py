@@ -109,9 +109,12 @@ async def test_scope_matrix_search_traverse(web_client, agent, db_url, name):
     for start, status in ((a, 200), (b, 200), (o, 404)):
         response = await client.get(f"/nodes/{key('N', start)}/traverse")
         assert response.status_code == status
-    # the user lists active projects only (search), by key reads stay unscoped
+    # the user is unscoped (spec 3.5): archived projects are searched too
     user = await search(web_client, q="zebra")
-    assert {h["key"] for h in user["items"]} == {key("N", a), key("N", b)}
+    assert {h["key"] for h in user["items"]} == {key("N", a), key("N", b), key("N", o)}
+    only_old = await search(web_client, q="zebra", project="old")
+    assert {h["key"] for h in only_old["items"]} == {key("N", o)}
+    assert (await search(client, q="zebra", project="old", scope="all"))["items"] == []
 
 
 async def test_pending_embedding_count_lexical(web_client, agent, db_url):
@@ -124,9 +127,11 @@ async def test_pending_embedding_count_lexical(web_client, agent, db_url):
         conn.execute("UPDATE nodes SET embedded_rev = content_rev WHERE id = %s", (b,))
         conn.commit()
     body = await search(web_client, q="alpha", mode="semantic", scope="all")
-    assert body["pending_embedding"] == 2  # a and c; b is embedded, old is not readable
+    assert body["pending_embedding"] == 3  # a, c and old (user is unscoped); b is embedded
     assert body["semantic"] is False
     assert [h["key"] for h in body["items"]] == [key("N", a)]
+    all_agent = await search(agent("p1"), q="alpha", scope="all")
+    assert all_agent["pending_embedding"] == 2  # a and c; the archived project is not counted
     own = await search(agent("p1"), q="alpha", mode="hybrid")
     assert own["pending_embedding"] == 1
     assert (await search(web_client, q="alpha", mode="lexical"))["semantic"] is False

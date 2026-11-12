@@ -27,6 +27,26 @@ async def test_traverse_cycle_terminates(web_client, db_url):
     assert body["truncated"] is False
 
 
+async def test_walk_sql_stops_cycles_by_path(pool, db_url):
+    # the depth cap alone would end this walk and the grouped result would not change; only
+    # the CYCLE clause keeps the raw walk to one row per node of the 3-cycle
+    _, (a, b, c) = seed_map(db_url, "p1", "cyc2", ["a", "b", "c"])
+    seed_edges(db_url, [(a, b), (b, c), (c, a)])
+    head = traverse_db.WALK_SQL.split("SELECT node_id, min(depth)")[0]
+    params = {
+        "start": a,
+        "kinds": ["relates_to"],
+        "readable": ["p1"],
+        "out": True,
+        "inc": False,
+        "tree": False,
+        "depth": traverse_db.MAX_DEPTH,
+    }
+    async with pool.connection() as conn:
+        cur = await conn.execute(head + "SELECT count(*) FROM walk WHERE NOT is_cycle", params)
+        assert (await cur.fetchone())[0] == 3
+
+
 async def test_traverse_depth_cap(web_client, db_url):
     _, ids = seed_map(db_url, "p1", "chain", [f"n{i}" for i in range(8)])
     seed_edges(db_url, list(itertools.pairwise(ids[1:])))
