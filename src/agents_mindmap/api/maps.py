@@ -75,10 +75,9 @@ def build_router() -> APIRouter:
 
     @router.get("/maps/{key}", response_model=MapView)
     async def get_map(request: Request, key: str) -> MapView:
-        readable = await lookup_of(request).active_slugs()
         async with pool_of(request).connection() as conn:
             row = await maps_db.get_map(conn, key)
-        if row is None or row.project not in readable:
+        if row is None:
             raise ApiError(404, "not_found", "not found")
         return MapView.of(row)
 

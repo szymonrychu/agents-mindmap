@@ -159,7 +159,8 @@ def _insert_inactive(db_url):
     return f"M-{map_id}", f"N-{node_id}"
 
 
-async def test_reads_by_key_hide_inactive_projects(web_client, db_url):
+async def test_user_key_reads_are_unscoped(web_client, db_url):
+    """Spec 3.5: the user (web, delegate) is unscoped, so key reads see archived projects too."""
     map_key, node_key = _insert_inactive(db_url)
     for path in (
         f"/maps/{map_key}",
@@ -168,8 +169,22 @@ async def test_reads_by_key_hide_inactive_projects(web_client, db_url):
         f"/nodes/{node_key}/versions/1",
     ):
         response = await web_client.get(path)
-        assert response.status_code == 404, path
-        assert response.json() == {"error": {"code": "not_found", "message": "not found"}}
+        assert response.status_code == 200, path
+
+
+async def test_delegate_key_reads_are_unscoped(db_url, pool):
+    map_key, node_key = _insert_inactive(db_url)
+    from conftest import ProjectLookup, fake_orchestrator
+
+    app = create_delegate_app(make_settings(db_url), pool)
+    app.state.projects = ProjectLookup("http://o.invalid", "t", transport=fake_orchestrator())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test" + PREFIX,
+        headers={"Authorization": f"Bearer {DELEGATE_TOKEN}"},
+    ) as client:
+        for path in (f"/maps/{map_key}", f"/nodes/{node_key}", f"/nodes/{node_key}/versions/1"):
+            assert (await client.get(path)).status_code == 200, path
 
 
 async def test_user_identity_header_order_and_fallback(web_client):
