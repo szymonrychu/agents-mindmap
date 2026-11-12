@@ -43,6 +43,7 @@ def test_defaults(monkeypatch):
     assert s.allowed_cidrs == ["127.0.0.1/32"]
     assert (s.http_port, s.delegate_port, s.service_port) == (8080, 8081, 8082)
     assert s.public_base_url == "https://lab.example.test"
+    assert s.orchestrator_url == "http://agents-orchestrator-services:8002"
     assert s.delegate_tokens == []
     assert s.taskboard_url == "" and s.embedder_url == ""
     assert s.embedder_model == EMBED_MODEL == "intfloat/multilingual-e5-large-instruct"
@@ -155,3 +156,22 @@ def test_settings_repr_hides_tokens(monkeypatch, caplog):
     assert CANARY not in str(s)
     assert CANARY not in caplog.text
     assert s.relay_token.get_secret_value() == f"{CANARY}-relay"
+
+
+def test_orchestrator_url_required(monkeypatch):
+    set_env(monkeypatch)
+    monkeypatch.delenv("MINDMAP_ORCHESTRATOR_URL")
+    with pytest.raises(SettingsError) as exc:
+        load_settings()
+    assert set(exc.value.problems) == {"MINDMAP_ORCHESTRATOR_URL"}
+
+
+def test_orchestrator_url_must_be_absolute(monkeypatch):
+    err = problems_of(monkeypatch, MINDMAP_ORCHESTRATOR_URL="nope")
+    assert set(err.problems) == {"MINDMAP_ORCHESTRATOR_URL"}
+
+
+def test_url_errors_do_not_echo_value(monkeypatch):
+    err = problems_of(monkeypatch, MINDMAP_ORCHESTRATOR_URL=f"ftp://u:{CANARY}@host")
+    assert set(err.problems) == {"MINDMAP_ORCHESTRATOR_URL"}
+    assert CANARY not in str(err)

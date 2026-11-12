@@ -22,7 +22,7 @@ Port = Annotated[int, Field(ge=1, le=65535)]
 def _absolute_url(value: str, env: str) -> str:
     parts = urlsplit(value)
     if parts.scheme not in ("http", "https") or not parts.netloc:
-        raise ValueError(f"{env}::not an absolute http(s) URL: {value!r}")
+        raise ValueError(f"{env}::not an absolute http(s) URL")
     return value.rstrip("/")
 
 
@@ -36,6 +36,7 @@ class Settings(BaseServiceSettings):
     delegate_port: Port = 8081
     service_port: Port = 8082
     public_base_url: str
+    orchestrator_url: str
     relay_token: SecretStr = Field(repr=False)
     delegate_tokens: Annotated[list[SecretStr], NoDecode] = Field([], repr=False)
     orchestrator_token: SecretStr = Field(SecretStr(""), repr=False)
@@ -65,6 +66,11 @@ class Settings(BaseServiceSettings):
     @classmethod
     def _base_url(cls, value: str) -> str:
         return _absolute_url(value, "MINDMAP_PUBLIC_BASE_URL")
+
+    @field_validator("orchestrator_url")
+    @classmethod
+    def _orchestrator_url(cls, value: str) -> str:
+        return _absolute_url(value, "MINDMAP_ORCHESTRATOR_URL")
 
     @field_validator("taskboard_url", "embedder_url")
     @classmethod
