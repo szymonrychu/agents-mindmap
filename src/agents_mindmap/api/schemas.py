@@ -14,6 +14,8 @@ from agents_mindmap.db.keys import fmt_key
 from agents_mindmap.db.links import LinkRow
 from agents_mindmap.db.maps import MapRow
 from agents_mindmap.db.nodes import NodeRow
+from agents_mindmap.db.search import Hit
+from agents_mindmap.db.traverse import NodeStub, Subgraph
 from agents_mindmap.db.versions import VersionMeta, VersionRow
 
 SLUG = r"^[a-z0-9][a-z0-9-]{0,39}$"
@@ -381,3 +383,73 @@ class ProjectCount(BaseModel):
     project: str
     maps: int
     nodes: int
+
+
+class NodeStubView(BaseModel):
+    key: str
+    map: str
+    project: str
+    topic: str
+    parent: str | None
+    status: str
+    open_growth_areas: int
+    embedding_pending: bool
+    depth: int
+    stub: bool
+
+    @classmethod
+    def of(cls, row: NodeStub) -> NodeStubView:
+        return cls(
+            key=row.key,
+            map=row.map_key,
+            project=row.project,
+            topic=row.topic,
+            parent=row.parent_key,
+            status=row.status,
+            open_growth_areas=row.open_growth_areas,
+            embedding_pending=row.embedding_pending,
+            depth=row.depth,
+            stub=row.stub,
+        )
+
+
+class SubgraphView(BaseModel):
+    nodes: list[NodeStubView]
+    edges: list[EdgeView]
+    truncated: bool
+
+    @classmethod
+    def of(cls, graph: Subgraph) -> SubgraphView:
+        return cls(
+            nodes=[NodeStubView.of(n) for n in graph.nodes],
+            edges=[EdgeView.of(e) for e in graph.edges],
+            truncated=graph.truncated,
+        )
+
+
+class HitView(BaseModel):
+    key: str
+    map: str
+    project: str
+    topic: str
+    snippet: str
+    signals: list[Literal["fts", "trgm", "semantic"]]
+    score: float
+
+    @classmethod
+    def of(cls, hit: Hit) -> HitView:
+        return cls(
+            key=hit.node_key,
+            map=hit.map_key,
+            project=hit.project,
+            topic=hit.topic,
+            snippet=hit.snippet,
+            signals=hit.signals,
+            score=hit.score,
+        )
+
+
+class SearchResponse(BaseModel):
+    items: list[HitView]
+    semantic: bool
+    pending_embedding: int
