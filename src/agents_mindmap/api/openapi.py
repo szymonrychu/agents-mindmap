@@ -39,20 +39,46 @@ ERROR_SCHEMAS: dict[str, Any] = {
     },
 }
 
+_COMMON = {
+    404: "unknown key (not_found)",
+    409: "conflict (version_conflict with the row version, slug_taken)",
+    422: (
+        "invalid request (invalid_request, project_unknown, project_archived, summary_required,"
+        " parent_cycle, parent_invalid, root_immovable)"
+    ),
+    503: "the orchestrator cannot validate the project (upstream_unavailable)",
+}
 WEB_ERRORS = {
     403: "source address is not allowed on the web listener (forbidden)",
-    422: "invalid request (invalid_request)",
+    **_COMMON,
 }
 SERVICE_ERRORS = {
     401: "no or an unknown bearer token (unauthorized)",
-    422: "invalid request (invalid_request)",
+    **_COMMON,
 }
 
 WEB_GUARD = (403,)
 SERVICE_GUARD = (401,)
 
 # (method, path under PREFIX) -> the error statuses besides the gate's, per listener.
-ROUTE_ERRORS: dict[bool, dict[tuple[str, str], tuple[int, ...]]] = {False: {}, True: {}}
+USER_ROUTE_ERRORS: dict[tuple[str, str], tuple[int, ...]] = {
+    ("get", "/projects"): (503,),
+    ("get", "/maps"): (422, 503),
+    ("post", "/maps"): (409, 422, 503),
+    ("get", "/maps/{key}"): (404,),
+    ("patch", "/maps/{key}"): (404, 409, 422),
+    ("delete", "/maps/{key}"): (404,),
+    ("post", "/maps/{key}/nodes"): (404, 422),
+    ("get", "/nodes/{key}"): (404,),
+    ("patch", "/nodes/{key}"): (404, 409, 422),
+    ("delete", "/nodes/{key}"): (404, 422),
+    ("get", "/nodes/{key}/versions"): (404,),
+    ("get", "/nodes/{key}/versions/{v}"): (404, 422),
+}
+ROUTE_ERRORS: dict[bool, dict[tuple[str, str], tuple[int, ...]]] = {
+    False: USER_ROUTE_ERRORS,
+    True: {},
+}
 
 
 def document(service: bool = False) -> dict[str, Any]:

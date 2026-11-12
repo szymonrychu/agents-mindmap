@@ -74,3 +74,9 @@ on every listener under no prefix and are exempt from every gate. The routes liv
 
 `uv run python -m agents_mindmap.api.openapi > openapi.json` documents the web listener;
 `--service` documents the service listener.
+
+## Conventions
+
+- Reads by key (`GET /maps/{key}`, `/nodes/{key}`, `/nodes/{key}/versions[/v]`) are unscoped for the user (web, delegate), including archived projects; list routes show active projects.
+- User identity: `X-Forwarded-Email`, else `X-Forwarded-User`, else the anonymous author `user:unknown` (agents-vault order and limits; the DB check needs `user:.+`).
+- A 409 `version_conflict` carries `version`, the current optimistic row guard (the field name clients send on PATCH). `current_version` on a node is the latest note version; `content_rev` counts content changes for re-embedding and also covers growth-area text later.

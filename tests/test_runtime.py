@@ -49,10 +49,10 @@ async def _get(port: int, path: str, token: str | None = None) -> httpx.Response
 
 
 @pytest.mark.parametrize("delegate", [True, False])
-async def test_serve_runs_every_listener_then_stops(empty_db_url, delegate):
+async def test_serve_runs_every_listener_then_stops(db_url, delegate):
     ports = {"http_port": free_port(), "delegate_port": free_port(), "service_port": free_port()}
     settings = make_settings(
-        empty_db_url,
+        db_url,
         http_host="127.0.0.1",
         delegate_tokens=[DELEGATE_TOKEN] if delegate else [],
         **ports,
