@@ -13,6 +13,7 @@ dependencies = [
     "pgvector",
     "pydantic",
     "pydantic-settings",
+    "prometheus-client>=0.26.0",
 ]
 
 [project.scripts]

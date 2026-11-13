@@ -1,6 +1,7 @@
 """MINDMAP_* settings of agents-mindmap."""
 
 import ipaddress
+from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlsplit
 
@@ -27,7 +28,7 @@ def _absolute_url(value: str, env: str) -> str:
 
 
 class Settings(BaseServiceSettings):
-    """Environment-driven settings shared by every process (serve, migrate)."""
+    """Environment-driven settings shared by every process (serve, migrate, workers)."""
 
     model_config = SettingsConfigDict(env_prefix="MINDMAP_", extra="ignore")
 
@@ -45,6 +46,11 @@ class Settings(BaseServiceSettings):
     embedder_url: str = ""
     embedder_model: str = EMBED_MODEL
     embed_dim: int = Field(EMBED_DIM, ge=1, le=16000)
+    embedder_timeout_seconds: float = Field(120.0, gt=0)
+    embedder_batch_size: int = Field(8, ge=1, le=64)
+    embedder_poll_seconds: float = Field(5.0, gt=0)
+    embedder_backoff_max_seconds: float = Field(300.0, gt=0)
+    metrics_port: Port = 9102
     notice_debounce_seconds: float = Field(60.0, ge=0)
     notifier_poll_seconds: float = Field(5.0, gt=0)
     notifier_backoff_max_seconds: float = Field(60.0, gt=0)
@@ -78,6 +84,22 @@ class Settings(BaseServiceSettings):
         if not value:
             return value
         return _absolute_url(value, f"MINDMAP_{str(info.field_name).upper()}")
+
+    @model_validator(mode="after")
+    def _token_from_file(self) -> "Settings":
+        """Replaces the agents-common validator of the same name: reads
+        MINDMAP_ORCHESTRATOR_TOKEN_FILE the same way but leaves the token optional, because
+        migrate, embedder and reembed never call the orchestrator and their pods do not hold the
+        token (secrets invariant 9). The commands that call it require it (cli)."""
+        if self.orchestrator_token_file:
+            try:
+                text = Path(self.orchestrator_token_file).read_text().strip()
+            except OSError as exc:
+                raise ValueError(
+                    f"MINDMAP_ORCHESTRATOR_TOKEN_FILE::cannot read: {exc.strerror}"
+                ) from None
+            self.orchestrator_token = SecretStr(text)
+        return self
 
     @model_validator(mode="after")
     def _ports(self) -> "Settings":

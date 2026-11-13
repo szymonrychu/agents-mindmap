@@ -6,8 +6,16 @@ import pytest
 from agents_mindmap import runtime
 from agents_mindmap.cli import EXIT_CONFIG, build_parser, main
 
-IMPLEMENTED = ("serve-web", "serve-service", "serve-delegate", "migrate", "notifier")
-LATER = ("embedder", "reembed")
+IMPLEMENTED = (
+    "serve-web",
+    "serve-service",
+    "serve-delegate",
+    "migrate",
+    "notifier",
+    "embedder",
+    "reembed",
+)
+LATER: tuple[str, ...] = ()
 
 
 @pytest.fixture(autouse=True)
@@ -119,3 +127,21 @@ def test_cli_no_unimplemented_commands(capsys):
     readme = (Path(__file__).resolve().parent.parent / "README.md").read_text()
     for name in LATER:
         assert f"`mindmap {name}`" not in readme
+
+
+def test_workers_without_orchestrator_token(monkeypatch, empty_db_url, capsys):
+    """migrate, embedder and reembed hold no orchestrator token (the chart gives them only the
+    database); the listeners and the notifier call the orchestrator and require it."""
+    set_env(monkeypatch, empty_db_url)
+    monkeypatch.delenv("MINDMAP_ORCHESTRATOR_TOKEN")
+    monkeypatch.setenv("MINDMAP_TASKBOARD_URL", "http://tb.invalid")
+    monkeypatch.setenv("MINDMAP_TASKBOARD_TOKEN", "tb-value")
+    assert main(["migrate"]) == 0
+    assert main(["reembed"]) == 0
+    calls = []
+    monkeypatch.setattr(runtime, "main", lambda s, listener: calls.append(listener) or 0)
+    capsys.readouterr()
+    for command in ("serve-web", "serve-service", "notifier"):
+        assert main([command]) == EXIT_CONFIG
+        assert "MINDMAP_ORCHESTRATOR_TOKEN" in capsys.readouterr().err
+    assert calls == []
