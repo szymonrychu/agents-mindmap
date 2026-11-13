@@ -142,5 +142,8 @@ oauth2-proxy-admission/enable: "true"
 oauth2-proxy-admission/redeem-url: {{ required "agents-mindmap: oauth2Proxy.redeemUrl is required" .Values.oauth2Proxy.redeemUrl | quote }}
 oauth2-proxy-admission/secret-name: {{ required "agents-mindmap: oauth2Proxy.secretName is required" .Values.oauth2Proxy.secretName | quote }}
 oauth2-proxy-admission/secret-namespace: {{ required "agents-mindmap: oauth2Proxy.secretNamespace is required" .Values.oauth2Proxy.secretNamespace | quote }}
+{{- with .Values.oauth2Proxy.apiRoutes }}
+oauth2-proxy-admission/api-routes: {{ . | quote }}
+{{- end }}
 {{- end -}}
 {{- end }}

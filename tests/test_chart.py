@@ -238,6 +238,14 @@ def test_sidecar_annotations_off_by_default_and_complete_when_on():
         assert f"oauth2Proxy.{field} is required" in proc.stderr
 
 
+def test_api_routes_annotation_optional_on_web_pod_only():
+    assert "oauth2-proxy-admission/api-routes" not in pod_annotations(render(OAUTH))
+    routes = "^/api/(maps|nodes)(/.*)?$"
+    docs = render({"oauth2Proxy": {**OAUTH["oauth2Proxy"], "apiRoutes": routes}})
+    assert pod_annotations(docs)["oauth2-proxy-admission/api-routes"] == routes
+    assert "oauth2-proxy-admission/api-routes" not in pod_annotations(docs, "service")
+
+
 LITERAL = re.compile(r"(?i)(token|secret|password)[\w-]*\s*:\s*\S{12,}")
 
 
