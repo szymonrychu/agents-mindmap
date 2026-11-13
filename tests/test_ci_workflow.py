@@ -97,7 +97,8 @@ def script_tree(tmp_path: Path) -> Path:
 @pytest.mark.parametrize(
     ("args", "code", "out"),
     [
-        (["branch", "main", "abcdef1234567"], 0, "0.4.2-main.abcdef1"),
+        (["branch", "main", "abcdef1234567"], 0, "0.4.2-main.gabcdef1"),
+        (["branch", "main", "0232318aaaa"], 0, "0.4.2-main.g0232318"),
         (["tag", "v0.4.2", "abcdef1234567"], 2, ""),
         (["tag", "v9.9.9", "abcdef1234567"], 2, ""),
         (["branch", "feature", "abcdef1234567"], 2, ""),
@@ -122,7 +123,7 @@ def test_chart_version_script_on_real_chart():
         text=True,
         check=True,
     )
-    assert r.stdout.strip() == "0.1.0-main.abcdef1"
+    assert r.stdout.strip() == "0.1.0-main.gabcdef1"
 
 
 def test_dockerfile_pins_uv():

@@ -74,3 +74,7 @@ Lessons that outlive a session. Newest first.
 
 - `reset_all` (the `reembed` CLI) runs an unguarded `UPDATE nodes SET embedded_rev = 0`, so it is a second writer of that column besides the embedder's guarded updates. Accepted exception to the one-writer rule: it is an operator-only bulk reset (forces a full re-embed after a model change), never reached by a service path.
 - It runs only while embedder work is idle. The embedder stays the only writer of `node_chunks`.
+
+## 2026-11-13 - chart version sha identifier is prefixed with g
+
+- `scripts/chart-version.sh` now prints `X.Y.Z-main.g<sha7>`. Why: a bare all-digit sha7 (CI run 43419200156, sha 0232318) is a numeric semver prerelease identifier; a leading zero is invalid ("version segment starts with 0") and any numeric one compares numerically. The `g` prefix keeps it alphanumeric. `--app-version` still gets the bare sha7.
