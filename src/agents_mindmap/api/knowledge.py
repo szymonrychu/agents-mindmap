@@ -22,11 +22,11 @@ KNOWLEDGE_SLUG = "knowledge"
 async def ensure_knowledge_map(
     conn: psycopg.AsyncConnection, project: str, actor: Actor
 ) -> maps_db.MapRow:
-    """The project's knowledge map, created on first use; concurrent first captures wait on
-    an advisory lock and share the one map."""
+    """The project's capture map (slug `knowledge`), created on first use; concurrent first
+    captures wait on an advisory lock and share the one map."""
     await conn.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"knowledge:{project}",))
     cur = await conn.execute(
-        "SELECT id FROM maps WHERE project = %s AND kind = 'knowledge'", (project,)
+        "SELECT id FROM maps WHERE project = %s AND slug = %s", (project, KNOWLEDGE_SLUG)
     )
     found = await cur.fetchone()
     if found is not None:

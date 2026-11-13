@@ -137,7 +137,9 @@ async def create_map(
                 actor_session=actor_session,
                 detail={"map": fmt_key("M", map_id), "root": fmt_key("N", node_id)},
             )
-    except errors.UniqueViolation:
+    except errors.UniqueViolation as exc:
+        if exc.diag.constraint_name != "maps_project_slug_key":
+            raise
         raise ApiError(409, "slug_taken", "a map with this slug exists in the project") from None
     created = await _select(conn, "id = %s", (map_id,))
     assert created is not None

@@ -1,4 +1,4 @@
-"""Knowledge capture: one lazily created knowledge map per project."""
+"""Knowledge capture: one lazily created capture map (slug knowledge) per project."""
 
 import asyncio
 
@@ -74,3 +74,13 @@ async def test_note_idempotent_client_key(agent):
     one = await client.post("/knowledge/notes", json={**NOTE, "client_key": "k"})
     two = await client.post("/knowledge/notes", json={**NOTE, "client_key": "k"})
     assert one.json()["key"] == two.json()["key"]
+
+
+async def test_note_ignores_user_made_knowledge_map(agent, web_client):
+    mine = await make_map(web_client, project="p1", slug="mine", title="mine", kind="knowledge")
+    client = agent("p1")
+    note = await client.post("/knowledge/notes", json=NOTE)
+    assert note.status_code == 201, note.text
+    assert note.json()["map"] != mine["key"]
+    maps = (await web_client.get("/maps", params={"project": "p1"})).json()
+    assert sorted(m["slug"] for m in maps) == ["knowledge", "mine"]
