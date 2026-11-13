@@ -14,6 +14,7 @@ from psycopg import errors, sql
 from agents_mindmap.settings import EMBED_DIM, EMBED_MODEL
 
 FILE = "0001_mindmap.sql"
+FILES = [FILE, "0002_knowledge_maps.sql"]
 
 
 def migration_text() -> str:
@@ -44,7 +45,7 @@ def add_node(conn: psycopg.Connection, map_id: int, project: str = "p1") -> int:
 
 
 def test_checksum_stable(empty_db_url):
-    assert run_migrations(empty_db_url, PACKAGE) == [FILE]
+    assert run_migrations(empty_db_url, PACKAGE) == FILES
     assert run_migrations(empty_db_url, PACKAGE) == []
     with psycopg.connect(empty_db_url) as conn:
         recorded = conn.execute(
@@ -72,7 +73,7 @@ def test_pg_trgm_created_by_app_role(pg_url, empty_db_url):
         )
     host = pg_url.split("@", 1)[1].rsplit("/", 1)[0]
     url = f"postgresql://{role}:pw@{host}/{name}"
-    assert run_migrations(url, PACKAGE) == [FILE]
+    assert run_migrations(url, PACKAGE) == FILES
     with psycopg.connect(url) as conn:
         assert conn.execute("SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm'").fetchone()
 
@@ -112,13 +113,14 @@ def test_link_unique_with_null_node(db_url):
             conn.execute(insert, (map_id,))
 
 
-def test_single_knowledge_map_per_project(db_url):
+def test_several_knowledge_maps_per_project(db_url):
     with psycopg.connect(db_url, autocommit=True) as conn:
         insert = (
             "INSERT INTO maps (project, slug, kind, title, status, created_by) "
             "VALUES ('p1', %s, 'knowledge', 'k', 'active', 'user:a@b.c')"
         )
         conn.execute(insert, ("knowledge",))
+        conn.execute(insert, ("knowledge-2",))
         with pytest.raises(errors.UniqueViolation):
             conn.execute(insert, ("knowledge-2",))
 

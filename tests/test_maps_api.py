@@ -201,3 +201,18 @@ async def test_user_identity_header_order_and_fallback(web_client):
     assert await author({}, "c") == "user:unknown"
     assert await author({"X-Forwarded-User": "bad\x01name"}, "d") == "user:unknown"
     assert await author({"X-Forwarded-User": "x" * 201}, "e") == "user:unknown"
+
+
+async def test_two_knowledge_maps_in_one_project(web_client):
+    first = await make_map(web_client, kind="knowledge", slug="kb-one")
+    second = await make_map(web_client, kind="knowledge", slug="kb-two")
+    assert first["key"] != second["key"]
+    listed = (await web_client.get("/maps", params={"kind": "knowledge"})).json()
+    assert len(listed) == 2
+
+
+async def test_duplicate_slug_still_conflicts(web_client):
+    await make_map(web_client, kind="knowledge", slug="kb-one")
+    again = await web_client.post("/maps", json={**MAP, "kind": "knowledge", "slug": "kb-one"})
+    assert again.status_code == 409
+    assert again.json()["error"]["code"] == "slug_taken"

@@ -78,3 +78,9 @@ Lessons that outlive a session. Newest first.
 ## 2026-11-13 - chart version sha identifier is prefixed with g
 
 - `scripts/chart-version.sh` now prints `X.Y.Z-main.g<sha7>`. Why: a bare all-digit sha7 (CI run 43419200156, sha 0232318) is a numeric semver prerelease identifier; a leading zero is invalid ("version segment starts with 0") and any numeric one compares numerically. The `g` prefix keeps it alphanumeric. `--app-version` still gets the bare sha7.
+
+## 2026-11-13 - several knowledge maps per project (T-228)
+
+- Migration 0002 drops `maps_one_knowledge_per_project` (0001 untouched, it is applied and checksummed). Why: `POST /maps` with `kind=knowledge` returned 409 `slug_taken` whenever the project already had any knowledge map, because every unique violation was mapped to that code. The user decided a project may hold several knowledge maps.
+- `create_map` answers 409 `slug_taken` only for the `maps_project_slug_key` constraint; other unique violations are re-raised.
+- `ensure_knowledge_map` (note capture) finds its map by slug `knowledge` in the project, not by kind, so a user-made knowledge map with another slug is never the capture target and the lazy create never collides.
